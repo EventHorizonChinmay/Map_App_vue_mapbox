@@ -9,14 +9,40 @@
     >
     ❌
     </button>
+    
     <div ref="searchdiv" id="search-div"></div>
     
+    <div id="drawingTools"> 
+      <button
+        v-if="!drawingMode && markers.length <= 0"
+        id="start_drawing_button"
+        @click="startDrawing"
+      >
+        Start Drawing
+      </button>
+      <button
+        v-if="!drawingMode && markers.length > 0"
+        id="clear_features_button"
+        @click="clearFeatures"
+      >
+        Clear Features
+      </button>
+      <button
+        v-if="drawingMode"
+        id="end_drawing_button"
+        @click="endDrawing"
+      >
+        End Drawing
+      </button>
+     </div>
+    <div ref="searchdiv" id="search-div"></div>
   </div>
 </template>
 
 <script>
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder";
+import * as turf from '@turf/turf';
 
 mapboxgl.accessToken = `pk.eyJ1IjoiY2hpbm1heWciLCJhIjoiY2xvNWc3NnF3MGF6ZzJxcWRtdTdmbGVsdyJ9.PyfJ7zptOqULwNQ5eB7RUQ`;
 
@@ -36,6 +62,8 @@ export default {
       distancesArray: [], // Added distancesArray
       markerCoords: [], // Added markerCoords
       lineLayerId: null,
+      drawingMode: false,
+      polygonLayerId: null,
     };
   },
   mounted() {
@@ -92,83 +120,77 @@ export default {
       this.map.setStyle(this.mapStyles[this.styleNo]);
     },
     toggleMarkerMode() {
-      // this.markerMode = !this.markerMode;
-      // if (this.markerMode) {
-      //   this.map.on("click", this.dropMarker);
-      // } else {
-      //   this.map.off("click", this.dropMarker);
-      // }
       this.markerMode = !this.markerMode;
-  if (this.markerMode) {
-    this.map.on("click", this.dropMarker);
-  } else {
-    this.map.off("click", this.dropMarker);
-    if (this.markers.length === 2) {
-      const coordinates = this.markers.map(marker => marker.getLngLat());
+      if (this.markerMode) {
+        this.map.on("click", this.dropMarker);
+      } else {
+        this.map.off("click", this.dropMarker);
+        if (this.markers.length === 2) {
+          const coordinates = this.markers.map(marker => marker.getLngLat());
 
-      const R = 6371; // Radius of the Earth in kilometers
-      const lat1 = coordinates[0].lat * Math.PI / 180;
-      const lat2 = coordinates[1].lat * Math.PI / 180;
-      const lon1 = coordinates[0].lng * Math.PI / 180;
-      const lon2 = coordinates[1].lng * Math.PI / 180;
+          const R = 6371; // Radius of the Earth in kilometers
+          const lat1 = coordinates[0].lat * Math.PI / 180;
+          const lat2 = coordinates[1].lat * Math.PI / 180;
+          const lon1 = coordinates[0].lng * Math.PI / 180;
+          const lon2 = coordinates[1].lng * Math.PI / 180;
 
-      const dLat = lat2 - lat1;
-      const dLon = lon2 - lon1;
+          const dLat = lat2 - lat1;
+          const dLon = lon2 - lon1;
 
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-      const distance = R * c;
-      console.log(`Distance between points: ${distance} kilometers`);
+          const distance = R * c;
+          console.log(`Distance between points: ${distance} kilometers`);
 
-      // Create a GeoJSON feature for the line
-      const lineFeature = {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [coordinates[0].lng, coordinates[0].lat],
-            [coordinates[1].lng, coordinates[1].lat]
-          ]
+          // Create a GeoJSON feature for the line
+          const lineFeature = {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [coordinates[0].lng, coordinates[0].lat],
+                [coordinates[1].lng, coordinates[1].lat]
+              ]
+            }
+          };
+
+          // Add the line to the map
+          if (this.lineLayerId) {
+            this.map.removeLayer(this.lineLayerId);
+            this.map.removeSource('line');
+          }
+
+          // Add the line to the map
+          this.lineLayerId = 'line-' + Date.now(); // Generate a unique ID for the line layer
+          this.map.addSource('line', {
+            type: 'geojson',
+            data: lineFeature
+          });
+
+          this.map.addLayer({
+            id: this.lineLayerId,
+            type: 'line',
+            source: 'line',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#888',
+              'line-width': 1
+            }
+          });
         }
-      };
-
-      // Add the line to the map
-      if (this.lineLayerId) {
-        this.map.removeLayer(this.lineLayerId);
-        this.map.removeSource('line');
+        this.removeLine();
       }
-
-      // Add the line to the map
-      this.lineLayerId = 'line-' + Date.now(); // Generate a unique ID for the line layer
-      this.map.addSource('line', {
-        type: 'geojson',
-        data: lineFeature
-      });
-
-      this.map.addLayer({
-        id: this.lineLayerId,
-        type: 'line',
-        source: 'line',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#888',
-          'line-width': 1
-        }
-      });
-    }
-    this.removeLine();
-  }
     },
     dropMarker(e) {
       const coordinates = e.lngLat;
       const popupContent = document.createElement('div');
-      popupContent.innerHTML = `<h1>Marker</h1><p>Lat: ${coordinates.lat}, Lng: ${coordinates.lng}</p>`;
+      popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
 
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'Delete';
@@ -252,6 +274,111 @@ export default {
       this.removeLine();
       this.distancesArray = [];
     },
+    startDrawing() {
+      this.drawingMode = true;
+      this.map.on("click", this.drawPolygon);
+    },
+
+    endDrawing() {
+      this.drawingMode = false;
+      this.map.off("click", this.drawPolygon);
+    },
+
+    drawPolygon(e) {
+      const coordinates = e.lngLat;
+      const popupContent = document.createElement('div');
+      popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
+
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+
+      const markerIndex = this.markers.length;
+
+      deleteButton.addEventListener('click', () => this.deleteMarker(markerIndex)); 
+      popupContent.appendChild(deleteButton);
+
+      const marker = new mapboxgl.Marker()
+        .setLngLat(coordinates)
+        .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
+        .addTo(this.map);
+
+      marker.index = markerIndex; // Store the index as a property of the marker
+
+      this.markers.push(marker);
+
+      // Check if there are at least 3 markers to form a polygon
+      if (this.markers.length >= 3) {
+        this.drawPolygonFeature();
+      }
+    },
+
+    drawPolygonFeature() {
+  const coordinates = this.markers.map(marker => marker.getLngLat());
+  if (coordinates.length >= 3) {
+    coordinates.push(coordinates[0]); // Close the polygon
+
+    const polygonFeature = {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [coordinates.map(coord => [coord.lng, coord.lat])]
+      }
+    };
+
+    if (this.polygonLayerId) {
+      this.map.removeLayer(this.polygonLayerId);
+      this.map.removeSource('polygon');
+    }
+
+    this.polygonLayerId = 'polygon-' + Date.now();
+
+    this.map.addSource('polygon', {
+      type: 'geojson',
+      data: polygonFeature
+    });
+
+    this.map.addLayer({
+      id: this.polygonLayerId,
+      type: 'fill',
+      source: 'polygon',
+      layout: {},
+      paint: {
+        'fill-color': '#088',
+        'fill-opacity': 0.4
+      }
+    });
+
+    // Calculate area (you can add your area calculation logic here)
+    const area = this.calculatePolygonArea(coordinates);
+    console.log(`Area of the polygon: ${area} square meters`);
+  } else {
+    console.error("At least 3 markers are required to form a polygon.");
+  }
+},
+
+
+    calculatePolygonArea(coordinates) {
+      // Add your area calculation logic here
+      // Example: Use Turf.js library
+      const polygon = turf.polygon([coordinates.map(coord => [coord.lng, coord.lat])]); // Wrap coordinates in an array
+      const area = turf.area(polygon);
+      console.log(area);
+      return area;
+    },
+
+    clearFeatures() {
+      this.markers.forEach((marker) => marker.remove());
+      this.markers = [];
+      this.removePolygon();
+    },
+
+    removePolygon() {
+      if (this.polygonLayerId) {
+        this.map.removeLayer(this.polygonLayerId);
+        this.map.removeSource('polygon');
+        this.polygonLayerId = null; // Reset polygonLayerId
+      }
+    },
   },
 };
 </script>
@@ -333,4 +460,14 @@ input{
     border: 2px solid rgb(100,100,100);
     transition: 0.2s ease ;
   }
+  #drawingTools{
+    z-index: 1;
+    position: absolute;
+    bottom: 30px;
+    right: 0px;
+    margin: 50px;
+  }
+  /* #start_drawing_button, #clear_features_button, #end_drawing_button{
+
+  } */
 </style>
