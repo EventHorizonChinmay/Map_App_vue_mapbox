@@ -1,15 +1,30 @@
 <template>
   <div ref="mapContainer" class="map-container">
     <button id="toggle_button" @click="toggleStyle">Toggle Map Style</button>
-    <button v-if="markerMode || markers.length <= 0  " id="drop_marker_button" @click="toggleMarkerMode">{{ markerMode ? '✔️' :  "📌" }} </button>
+    
+    
+    
+    
+    <button 
+     id="drop_marker_button" alt="Drop pins"
+     @click="toggleMarkerMode">
+     {{ markerMode ? '✔️' :  "📌" }} 
+     <!-- {{ markers.length>0 ? '✔️' :  "📌" }}  -->
+    </button>
+
+        <!-- <button v-if="markerMode || markers.length <= 0"
+     id="drop_marker_button" 
+     @click="toggleMarkerMode">{{ markerMode ? '✔️' :  "📌" }} 
+    </button> -->
     <button
       v-if="markers.length > 0 && !markerMode"
       id="drop_marker_button"
-      @click="clearMarkers"
+      @click="clearFeatures"
     >
     ❌
     </button>
-    
+
+
     <div ref="searchdiv" id="search-div"></div>
     
     <div id="drawingTools"> 
@@ -17,25 +32,31 @@
         v-if="!drawingMode && markers.length <= 0"
         id="start_drawing_button"
         @click="startDrawing"
-      >
-        Start Drawing
+      > 🖋️
+        
       </button>
       <button
         v-if="!drawingMode && markers.length > 0"
         id="clear_features_button"
         @click="clearFeatures"
       >
-        Clear Features
+      🗑️
       </button>
       <button
         v-if="drawingMode"
         id="end_drawing_button"
         @click="endDrawing"
       >
-        End Drawing
+      👍🏼
       </button>
      </div>
     <div ref="searchdiv" id="search-div"></div>
+    
+    <div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
+      <p v-if="markers.length === 2">Distance: {{ distance }} kilometers</p>
+      <p v-if="polygonLayerId">Area: {{ area }} square meters</p>
+      <p v-if="polygonLayerId">Perimeter: {{ perimeter }} kilometers</p>
+    </div>
   </div>
 </template>
 
@@ -59,11 +80,15 @@ export default {
       ],
       markerMode: false,
       markers: [],
-      distancesArray: [], // Added distancesArray
-      markerCoords: [], // Added markerCoords
+      distancesArray: [], 
+      markerCoords: [], 
       lineLayerId: null,
       drawingMode: false,
       polygonLayerId: null,
+      area: null,
+      perimeter: null,
+      showInfoBox: false,
+      distance:null,
     };
   },
   mounted() {
@@ -107,86 +132,21 @@ export default {
     },
   },
   methods: {
-    getLocation() {
-      return {
-        ...this.map.getCenter(),
-        bearing: this.map.getBearing(),
-        pitch: this.map.getPitch(),
-        zoom: this.map.getZoom(),
-      };
-    },
+
     toggleStyle() {
       this.styleNo = (this.styleNo + 1) % this.mapStyles.length;
       this.map.setStyle(this.mapStyles[this.styleNo]);
     },
     toggleMarkerMode() {
       this.markerMode = !this.markerMode;
+      console.log('toggleMarjerMode')
       if (this.markerMode) {
         this.map.on("click", this.dropMarker);
       } else {
         this.map.off("click", this.dropMarker);
-        if (this.markers.length === 2) {
-          const coordinates = this.markers.map(marker => marker.getLngLat());
-
-          const R = 6371; // Radius of the Earth in kilometers
-          const lat1 = coordinates[0].lat * Math.PI / 180;
-          const lat2 = coordinates[1].lat * Math.PI / 180;
-          const lon1 = coordinates[0].lng * Math.PI / 180;
-          const lon2 = coordinates[1].lng * Math.PI / 180;
-
-          const dLat = lat2 - lat1;
-          const dLon = lon2 - lon1;
-
-          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(lat1) * Math.cos(lat2) *
-                    Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-          const distance = R * c;
-          console.log(`Distance between points: ${distance} kilometers`);
-
-          // Create a GeoJSON feature for the line
-          const lineFeature = {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [coordinates[0].lng, coordinates[0].lat],
-                [coordinates[1].lng, coordinates[1].lat]
-              ]
-            }
-          };
-
-          // Add the line to the map
-          if (this.lineLayerId) {
-            this.map.removeLayer(this.lineLayerId);
-            this.map.removeSource('line');
-          }
-
-          // Add the line to the map
-          this.lineLayerId = 'line-' + Date.now(); // Generate a unique ID for the line layer
-          this.map.addSource('line', {
-            type: 'geojson',
-            data: lineFeature
-          });
-
-          this.map.addLayer({
-            id: this.lineLayerId,
-            type: 'line',
-            source: 'line',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#888',
-              'line-width': 1
-            }
-          });
-        }
-        this.removeLine();
       }
     },
+
     dropMarker(e) {
       const coordinates = e.lngLat;
       const popupContent = document.createElement('div');
@@ -205,8 +165,7 @@ export default {
         .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
         .addTo(this.map);
 
-      marker.index = markerIndex; // Store the index as a property of the marker
-
+      marker.index = markerIndex;
       this.markers.push(marker);
       if (this.markers.length === 2) {
         this.drawSegment();
@@ -221,60 +180,63 @@ export default {
       if (marker) {
         marker.remove();
         this.markers = this.markers.filter(marker => marker.index !== index);
-      }
+      }}
       
-    },
-    drawSegment() {
-      const coordinates = this.markers.map(marker => marker.getLngLat());
+    ,
 
-      const lineFeature = {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [coordinates[0].lng, coordinates[0].lat],
-            [coordinates[1].lng, coordinates[1].lat]
-          ]
-        }
+    updateLocation() {
+      const curr = this.getLocation();
+      const map = this.map;
+
+      if (curr.lng != map.getCenter().lng || curr.lat != map.getCenter().lat)
+        map.setCenter({ lng: curr.lng, lat: curr.lat });
+      if (curr.pitch != map.getPitch()) map.setPitch(curr.pitch);
+      if (curr.bearing != map.getBearing()) map.setBearing(curr.bearing);
+      if (curr.zoom != map.getZoom()) map.setZoom(curr.zoom);
+    },
+
+    getLocation() {
+      return {
+        ...this.map.getCenter(),
+        bearing: this.map.getBearing(),
+        pitch: this.map.getPitch(),
+        zoom: this.map.getZoom(),
       };
-
-      this.lineLayerId = 'line-' + Date.now();
-
-      this.map.addSource('line', {
-        type: 'geojson',
-        data: lineFeature
-      });
-
-      this.map.addLayer({
-        id: this.lineLayerId,
-        type: 'line',
-        source: 'line',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#888',
-          'line-width': 1
-        }
-      });
     },
 
-    removeLine() {
-      if (this.lineLayerId) {
-        this.map.removeLayer(this.lineLayerId);
-        this.map.removeSource('line');
-        this.lineLayerId = null; // Reset lineLayerId
-      }
-    },
-    clearMarkers() {
-      this.markers.forEach((marker) => marker.remove());
-      this.markers = [];
-      this.markerCoords = [];
-      this.removeLine();
-      this.distancesArray = [];
-    },
     startDrawing() {
+
+      this.drawingMode = true;
+      if (this.markers.length === 2) {
+        this.drawLine()
+        console.log('2')
+        const coordinates = this.markers.map(marker => marker.getLngLat());
+      const startPoint = coordinates[0];
+      const endPoint = coordinates[1];
+
+      const R = 6371; 
+      const lat1 = startPoint.lat * (Math.PI / 180);
+      const lat2 = endPoint.lat * (Math.PI / 180);
+      const lon1 = startPoint.lng * (Math.PI / 180);
+      const lon2 = endPoint.lng * (Math.PI / 180);
+
+      const dLat = lat2 - lat1;
+      const dLon = lon2 - lon1;
+
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      const distance = R * c;
+      this.distance = distance.toFixed(2);
+      this.showInfoBox = true;
+
+      console.log(`Distance between points: ${distance} kilometers`);
+      } else {
+        this.distance = null;
+        this.showInfoBox = false;
+      }
+
       this.drawingMode = true;
       this.map.on("click", this.drawPolygon);
     },
@@ -282,88 +244,194 @@ export default {
     endDrawing() {
       this.drawingMode = false;
       this.map.off("click", this.drawPolygon);
+      this.showInfoBox = true;
+    },
+
+    drawLine() {
+      const coordinates = this.markers.map(marker => marker.getLngLat());
+      const startPoint = coordinates[0];
+      const endPoint = coordinates[1];
+
+      const R = 6371;  
+      const lat1 = startPoint.lat * (Math.PI / 180);
+      const lat2 = endPoint.lat * (Math.PI / 180);
+      const lon1 = startPoint.lng * (Math.PI / 180);
+      const lon2 = endPoint.lng * (Math.PI / 180);
+
+      const dLat = lat2 - lat1;
+      const dLon = lon2 - lon1;
+
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      const distance = R * c;
+      this.distance = distance.toFixed(2);
+      this.showInfoBox = true;
+
+      console.log(`Distance between points: ${distance} kilometers`);
     },
 
     drawPolygon(e) {
-      const coordinates = e.lngLat;
-      const popupContent = document.createElement('div');
-      popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
+  const coordinates = e.lngLat;
+  const popupContent = document.createElement('div');
+  popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
 
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
+  const deleteButton = document.createElement('button');
+  deleteButton.textContent = 'Delete';
 
-      const markerIndex = this.markers.length;
+  const markerIndex = this.markers.length;
 
-      deleteButton.addEventListener('click', () => this.deleteMarker(markerIndex)); 
-      popupContent.appendChild(deleteButton);
+  deleteButton.addEventListener('click', () => this.deleteMarker(markerIndex)); 
+  popupContent.appendChild(deleteButton);
 
-      const marker = new mapboxgl.Marker()
-        .setLngLat(coordinates)
-        .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
-        .addTo(this.map);
+  const marker = new mapboxgl.Marker()
+    .setLngLat(coordinates)
+    .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
+    .addTo(this.map);
 
-      marker.index = markerIndex; // Store the index as a property of the marker
+  marker.getElement().classList.add('custom-marker'); // Add custom class
 
-      this.markers.push(marker);
+  marker.index = markerIndex; 
+  this.markers.push(marker);
 
-      // Check if there are at least 3 markers to form a polygon
-      if (this.markers.length >= 3) {
-        this.drawPolygonFeature();
-      }
-    },
 
-    drawPolygonFeature() {
-  const coordinates = this.markers.map(marker => marker.getLngLat());
-  if (coordinates.length >= 3) {
-    coordinates.push(coordinates[0]); // Close the polygon
+  if (this.markers.length === 2) {
+    const startPoint = this.markers[0].getLngLat();
+    const endPoint = this.markers[1].getLngLat();
 
-    const polygonFeature = {
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [coordinates.map(coord => [coord.lng, coord.lat])]
-      }
-    };
+    const lineCoordinates = [startPoint, endPoint];
+    this.drawPolyline(lineCoordinates);
 
-    if (this.polygonLayerId) {
-      this.map.removeLayer(this.polygonLayerId);
-      this.map.removeSource('polygon');
-    }
+    const R = 6371; 
+    const lat1 = startPoint.lat * (Math.PI / 180);
+    const lat2 = endPoint.lat * (Math.PI / 180);
+    const lon1 = startPoint.lng * (Math.PI / 180);
+    const lon2 = endPoint.lng * (Math.PI / 180);
 
-    this.polygonLayerId = 'polygon-' + Date.now();
+    const dLat = lat2 - lat1;
+    const dLon = lon2 - lon1;
 
-    this.map.addSource('polygon', {
-      type: 'geojson',
-      data: polygonFeature
-    });
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    this.map.addLayer({
-      id: this.polygonLayerId,
-      type: 'fill',
-      source: 'polygon',
-      layout: {},
-      paint: {
-        'fill-color': '#088',
-        'fill-opacity': 0.4
-      }
-    });
+    const distance = R * c;
+    this.distance = distance.toFixed(2);
+    this.showInfoBox = true;
 
-    // Calculate area (you can add your area calculation logic here)
-    const area = this.calculatePolygonArea(coordinates);
-    console.log(`Area of the polygon: ${area} square meters`);
-  } else {
-    console.error("At least 3 markers are required to form a polygon.");
+    console.log(`Distance between points: ${distance} kilometers`);
+  }
+
+  if (this.markers.length >= 3) {
+    this.removePolyline();
+    this.drawPolygonFeature();
+    this.showInfoBox = true;
   }
 },
 
+drawPolyline(coordinates) {
+  const lineString = {
+    type: "Feature",
+    properties: {},
+    geometry: {
+      type: "LineString",
+      coordinates: coordinates.map(coord => [coord.lng, coord.lat]),
+    },
+  };
+
+  if (this.lineLayerId) {
+    this.map.removeLayer(this.lineLayerId);
+    this.map.removeSource("line");
+  }
+
+  this.lineLayerId = "line-" + Date.now();
+
+  this.map.addSource("line", {
+    type: "geojson",
+    data: lineString,
+  });
+
+  this.map.addLayer({
+    id: this.lineLayerId,
+    type: "line",
+    source: "line",
+    layout: {},
+    paint: {
+      "line-color": "#ff8c00",
+      "line-width": 2,
+    },
+  });
+},
+
+removePolyline() {
+  if (this.lineLayerId) {
+    this.map.removeLayer(this.lineLayerId);
+    this.map.removeSource('line');
+    this.lineLayerId = null;
+  }
+},
+
+    drawPolygonFeature() {
+      const coordinates = this.markers.map(marker => marker.getLngLat());
+      coordinates.push(coordinates[0]);
+
+      const polygonFeature = {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [coordinates.map(coord => [coord.lng, coord.lat])]
+        }
+      };
+
+      if (this.polygonLayerId) {
+        this.map.removeLayer(this.polygonLayerId);
+        this.map.removeSource("polygon");
+      }
+
+      this.polygonLayerId = "polygon-" + Date.now();
+
+      this.map.addSource("polygon", {
+        type: "geojson",
+        data: polygonFeature
+      });
+
+      this.map.addLayer({
+        id: this.polygonLayerId,
+        type: "fill",
+        source: "polygon",
+        layout: {},
+        paint: {
+          "fill-color": "#088",
+          "fill-opacity": 0.4
+        }
+      });
+
+      this.area = this.calculatePolygonArea(coordinates);
+      this.perimeter = this.calculatePolygonPerimeter(coordinates);
+    },
 
     calculatePolygonArea(coordinates) {
-      // Add your area calculation logic here
-      // Example: Use Turf.js library
-      const polygon = turf.polygon([coordinates.map(coord => [coord.lng, coord.lat])]); // Wrap coordinates in an array
+      const polygon = turf.polygon([coordinates.map(coord => [coord.lng, coord.lat])]);
       const area = turf.area(polygon);
-      console.log(area);
       return area;
+    },
+
+    calculatePolygonPerimeter(coordinates) {
+      const lineString = turf.lineString(coordinates.map(coord => [coord.lng, coord.lat]));
+      const length = turf.length(lineString, { units: "kilometers" });
+      return length;
+    },
+
+    deleteMarker(index) {
+      const marker = this.markers.find(marker => marker.index === index);
+      if (this.markers.length < 2) {
+        this.removePolygon();
+      }
+      if (marker) {
+        marker.remove();
+        this.markers = this.markers.filter(marker => marker.index !== index);
+      }
     },
 
     clearFeatures() {
@@ -376,7 +444,7 @@ export default {
       if (this.polygonLayerId) {
         this.map.removeLayer(this.polygonLayerId);
         this.map.removeSource('polygon');
-        this.polygonLayerId = null; // Reset polygonLayerId
+        this.polygonLayerId = null;
       }
     },
   },
@@ -462,12 +530,57 @@ input{
   }
   #drawingTools{
     z-index: 1;
+    background-color: rgba(0205,0205,0205,01.8);
+    /* background-color: red; */
     position: absolute;
-    bottom: 30px;
-    right: 0px;
-    margin: 50px;
+    top: 80px;
+    left: 0px;
+    height: 35px;
+    border-radius: 5px;
+    margin: 30px;
+    width: 50px;
+    cursor: pointer;
+    border: 1px solid rgba(100,100,100,1);
+    transition: 0.2s ease ;
+    z-index: 1;
+    /* position: absolute;
+    top: 100px;
+    left: 20px;
+    margin: 12px; */
   }
-  /* #start_drawing_button, #clear_features_button, #end_drawing_button{
+  #drawingTools button{
+    border: none;
+    width: min-content;
 
-  } */
+    background-color: rgba(0, 0,0,0);
+  }
+  
+  .info-box {
+  background-color: rgba(255, 255, 255, 0.8);
+  /* background-color: #f9f9f9; */
+  color: rgba(0, 0, 0, 0.9);
+  /* height: 50px; */
+  width: 310px;
+  /* color: #fff; */
+  /* display: flex;  */
+  align-items: center; /* Center align vertically */
+  padding: 6px 12px;
+  margin: 12px;
+  z-index: 2;
+  position: absolute;
+  top: 80px;
+  left: 50px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+.custom-marker {
+  /* Add your custom styles for the markers here */
+  background-color: #ff0000; /* For example, change the marker color to red */
+  border-radius: 50%;
+  width: 80px;
+  height: 20px;
+  cursor: pointer;
+}
 </style>
