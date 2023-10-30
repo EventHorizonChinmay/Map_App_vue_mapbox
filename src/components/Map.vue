@@ -823,8 +823,6 @@ export default {
   }
 
 .custom-marker {
-  /* Add your custom styles for the markers here */
-  /* background-color: #ff0000; For example, change the marker color to red */
   border-radius: 50%;
   width: 20px;
   height: 20px;
