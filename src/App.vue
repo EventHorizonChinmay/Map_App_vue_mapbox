@@ -3,21 +3,20 @@
   <div id="layout">
 
     <div id="sidebar">
-      Longitude: <input v-model="lng" type="number"/>
-      Latitude: <input v-model="lat"  type="number"/>&nbsp|&nbsp
+      Longitude: <input v-model="lng" type="number" title="Enter longitude"/>
+      Latitude: <input v-model="lat"  type="number" title="Enter lattitude"/>&nbsp|&nbsp
       <div class="btncontainer">
       <button @click="location = { lng:lng  , lat:lat, zoom: 7, pitch:0, bearing: 0};
-      lng=''; lat=''" id="searchbtn"> 
-      <!-- <img src="search"/> -->
+      lng=''; lat=''" id="searchbtn" title="Search the coordinate"> 
     </button> </div>
       <!-- 🔎 -->
       <div class="btncontainer">
-      <button @click="location = {lng: 77.641622, lat: 12.911872, zoom: 16.5, pitch:0 , bearing: 0 }" id="resetbtn"></button>
+      <button title="Refresh Map" @click="location = {lng: 77.641622, lat: 12.911872, zoom: 16.5, pitch:0 , bearing: 0 }" id="resetbtn"></button>
     </div>
       <!-- ↻ -->
     </div>
 
-    <div id="sidebar2">
+    <div id="sidebar2" title="Current location">
       Longitude: <b style="font-weight: 600;margin:10px">{{location.lng.toFixed(2) }}</b> |
       Latitude: <b style="font-weight: 600; ;margin:10px">{{ location.lat.toFixed(2) }}</b> |
       Zoom: <b style="font-weight: 600;margin-left:10px; ">{{ location.zoom.toFixed(1) }} X</b> 
