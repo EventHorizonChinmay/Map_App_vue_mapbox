@@ -309,7 +309,7 @@ export default {
     .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
     .addTo(this.map);
 
-  marker.getElement().classList.add('custom-marker'); // Add custom class
+  marker.getElement().classList.add('custom-marker'); 
 
   marker.index = markerIndex; 
   this.markers.push(marker);
@@ -517,10 +517,8 @@ export default {
       const selectedGeometry = savedGeometries.find(geometry => geometry.name === name);
 
       if (selectedGeometry) {
-        // Clear existing markers and geometries
         this.clearFeatures();
 
-        // Recreate markers with popups
         selectedGeometry.markers.forEach(coords => {
           const popupContent = document.createElement('div');
           popupContent.innerHTML = `<p>Lat: ${coords.lat}</p><p>Lng: ${coords.lng}</p>`;
@@ -533,14 +531,12 @@ export default {
           this.markers.push(marker);
         });
 
-        // Draw the geometry based on saved coordinates
         if (selectedGeometry.polygonCoordinates) {
           this.drawPolygonFeature(selectedGeometry.polygonCoordinates);
         } else if (selectedGeometry.lineCoordinates) {
           this.drawPolyline(selectedGeometry.lineCoordinates);
         }
 
-        // Calculate and display area/perimeter or distance
         if (selectedGeometry.polygonCoordinates) {
           this.showInfoBox = true;
           this.area = this.calculatePolygonArea(selectedGeometry.polygonCoordinates);
@@ -549,7 +545,7 @@ export default {
           this.showInfoBox = true;
           const startPoint = selectedGeometry.markers[0];
           const endPoint = selectedGeometry.markers[1];
-          const distance = turf.distance(startPoint, endPoint) * 1000; // Convert to meters
+          const distance = turf.distance(startPoint, endPoint) * 1000;
           this.distance = distance.toFixed(2) + ' meters';
         }
       }
