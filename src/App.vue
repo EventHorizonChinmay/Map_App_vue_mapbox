@@ -26,7 +26,6 @@ export default {
   }),
 
   methods: {
-    // Add the toggleMapStyle method
     toggleMapStyle() {
       this.currentStyleIndex =
         (this.currentStyleIndex + 1) % this.mapStyles.length;

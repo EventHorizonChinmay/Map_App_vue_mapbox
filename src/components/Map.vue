@@ -1,61 +1,69 @@
 <template>
   <div ref="mapContainer" class="map-container">
-    <button id="toggle_button" @click="toggleStyle">Toggle Map Style</button>
-    
-    
-    
-    
-    <button 
-     id="drop_marker_button" alt="Drop pins"
-     @click="toggleMarkerMode">
-     {{ markerMode ? '✔️' :  "📌" }} 
-     <!-- {{ markers.length>0 ? '✔️' :  "📌" }}  -->
-    </button>
+    <div style="background-color: red;">
+      
+      <button id="toggle_button" @click="toggleStyle">Toggle Map Style</button>
 
-        <!-- <button v-if="markerMode || markers.length <= 0"
-     id="drop_marker_button" 
-     @click="toggleMarkerMode">{{ markerMode ? '✔️' :  "📌" }} 
-    </button> -->
-    <button
-      v-if="markers.length > 0 && !markerMode"
-      id="drop_marker_button"
-      @click="clearFeatures"
-    >
-    ❌
-    </button>
-
-
-    <div ref="searchdiv" id="search-div"></div>
-    
-    <div id="drawingTools"> 
-      <button
-        v-if="!drawingMode && markers.length <= 0"
-        id="start_drawing_button"
-        @click="startDrawing"
-      > 🖋️
-        
+      <button 
+      id="drop_marker_button" alt="Drop pins"
+      @click="toggleMarkerMode">
+      {{ markerMode ? '✔️' :  "📌" }} 
+      <!-- {{ markers.length>0 ? '✔️' :  "📌" }}  -->
       </button>
+
       <button
-        v-if="!drawingMode && markers.length > 0"
-        id="clear_features_button"
+        v-if="markers.length > 0 && !markerMode"
+        id="drop_marker_button"
         @click="clearFeatures"
       >
-      🗑️
+      ❌
       </button>
-      <button
-        v-if="drawingMode"
-        id="end_drawing_button"
-        @click="endDrawing"
-      >
-      👍🏼
-      </button>
-     </div>
-    <div ref="searchdiv" id="search-div"></div>
+
+
+      <div ref="searchdiv" id="search-div"></div>
+      
+      <div id="drawingTools"> 
+        <button
+          v-if="!drawingMode && markers.length <= 0"
+          id="start_drawing_button"
+          @click="startDrawing"
+        > 🖋️
+          
+        </button>
+        <button
+          v-if="!drawingMode && markers.length > 0"
+          id="clear_features_button"
+          @click="clearFeatures"
+        >
+        🗑️
+        </button>
+        <button
+          v-if="drawingMode"
+          id="end_drawing_button"
+          @click="endDrawing"
+        >
+        👍🏼
+        </button>
+      </div>
+      <div ref="searchdiv" id="search-div"></div>
+      
+      <div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
+        <p v-if="markers.length === 2">Distance: {{ distance<1 ? distance*1000+ ' meters' : distance +'kms' }} </p>
+        <p v-if="polygonLayerId">Area: {{ area > 1e6 ? area + ' sq meters' : area/1e6 + ' sq kms' }} </p>
+        <p v-if="polygonLayerId">Perimeter: {{ perimeter<1 ? perimeter*1000 + ' meters' : perimeter }} </p>
+      </div>
+      <button class="saveGeom" v-if="markers.length>0" @click="saveGeometry">Save Geometry</button>
     
-    <div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
-      <p v-if="markers.length === 2">Distance: {{ distance }} kilometers</p>
-      <p v-if="polygonLayerId">Area: {{ area }} square meters</p>
-      <p v-if="polygonLayerId">Perimeter: {{ perimeter }} kilometers</p>
+      <button class="showSavedGeom" @click="showSavedGeometries">Show Saved Geometries</button>
+
+      <div class="savedGeomList" v-if="savedGeometries.length > 0">
+        <ul>
+          <li v-for="(geometry, index) in savedGeometries" :key="index">
+            <button @click="displaySavedGeometry(geometry.name)">{{ geometry.name }}</button>
+            <button @click="deleteSavedGeometry(geometry.name)">Delete</button>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -82,6 +90,7 @@ export default {
       markers: [],
       distancesArray: [], 
       markerCoords: [], 
+      showSavedGeometries: false, 
       lineLayerId: null,
       drawingMode: false,
       polygonLayerId: null,
@@ -89,7 +98,15 @@ export default {
       perimeter: null,
       showInfoBox: false,
       distance:null,
+      savedGeometryNames: [],
+      savedGeometries: [],
     };
+  },
+  computed: {
+    savedGeometryNames() {
+      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+      return savedGeometries.map(geometry => geometry.name);
+    }
   },
   mounted() {
     const { lng, lat, zoom, bearing, pitch } = this.modelValue;
@@ -118,6 +135,8 @@ export default {
     map.addControl(geocoder);
 
     this.map = map;
+    this.savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+  
   },
   watch: {
     modelValue(next) {
@@ -328,49 +347,49 @@ export default {
     this.drawPolygonFeature();
     this.showInfoBox = true;
   }
-},
-
-drawPolyline(coordinates) {
-  const lineString = {
-    type: "Feature",
-    properties: {},
-    geometry: {
-      type: "LineString",
-      coordinates: coordinates.map(coord => [coord.lng, coord.lat]),
     },
-  };
 
-  if (this.lineLayerId) {
-    this.map.removeLayer(this.lineLayerId);
-    this.map.removeSource("line");
-  }
+    drawPolyline(coordinates) {
+      const lineString = {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: coordinates.map(coord => [coord.lng, coord.lat]),
+        },
+      };
 
-  this.lineLayerId = "line-" + Date.now();
+      if (this.lineLayerId) {
+        this.map.removeLayer(this.lineLayerId);
+        this.map.removeSource("line");
+      }
 
-  this.map.addSource("line", {
-    type: "geojson",
-    data: lineString,
-  });
+      this.lineLayerId = "line-" + Date.now();
 
-  this.map.addLayer({
-    id: this.lineLayerId,
-    type: "line",
-    source: "line",
-    layout: {},
-    paint: {
-      "line-color": "#ff8c00",
-      "line-width": 2,
+      this.map.addSource("line", {
+        type: "geojson",
+        data: lineString,
+      });
+
+      this.map.addLayer({
+        id: this.lineLayerId,
+        type: "line",
+        source: "line",
+        layout: {},
+        paint: {
+          "line-color": "#ff8c00",
+          "line-width": 2,
+        },
+      });
     },
-  });
-},
 
-removePolyline() {
-  if (this.lineLayerId) {
-    this.map.removeLayer(this.lineLayerId);
-    this.map.removeSource('line');
-    this.lineLayerId = null;
-  }
-},
+    removePolyline() {
+      if (this.lineLayerId) {
+        this.map.removeLayer(this.lineLayerId);
+        this.map.removeSource('line');
+        this.lineLayerId = null;
+      }
+    },
 
     drawPolygonFeature() {
       const coordinates = this.markers.map(marker => marker.getLngLat());
@@ -447,6 +466,109 @@ removePolyline() {
         this.polygonLayerId = null;
       }
     },
+    saveGeometry() {
+      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+      
+      const geometryName = window.prompt('Enter a unique name for the geometry:');
+      
+      if (geometryName !== null) {
+        const isNameUnique = !savedGeometries.some(geometry => geometry.name === geometryName);
+        
+        if (isNameUnique) {
+          const savedGeometry = {
+            name: geometryName,
+            markers: this.markers.map(marker => marker.getLngLat()),
+            lineCoordinates: this.lineLayerId ? this.markers.map(marker => marker.getLngLat()) : null,
+            polygonCoordinates: this.polygonLayerId ? this.markers.map(marker => marker.getLngLat()) : null,
+          };
+          savedGeometries.push(savedGeometry);
+          localStorage.setItem('savedGeometries', JSON.stringify(savedGeometries));
+          this.savedGeometries = savedGeometries;
+          this.savedGeometries = savedGeometries;
+
+        } else {
+          alert('Geometry name must be unique. Please choose a different name.');
+        }
+      }
+    },
+    showSavedGeometries() {
+
+      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+      
+      if (savedGeometries.length === 0) {
+        alert('No saved geometries found.');
+        return;
+      }
+      
+      const geometryNames = savedGeometries.map(geometry => geometry.name);
+      // const selectedGeometryName = window.prompt('Select a geometry to display:\n\n' + geometryNames.join('\n'));
+      
+      // if (selectedGeometryName !== null) {
+      //   const selectedGeometry = savedGeometries.find(geometry => geometry.name === selectedGeometryName);
+      //   if (selectedGeometry) {
+      //     this.displaySavedGeometry(selectedGeometry);
+      //   } else {
+      //     alert('Invalid geometry name. Please select a valid name.');
+      //   }
+      // }
+    },
+    displaySavedGeometry(name) {
+      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+      const selectedGeometry = savedGeometries.find(geometry => geometry.name === name);
+
+      if (selectedGeometry) {
+        // Clear existing markers and geometries
+        this.clearFeatures();
+
+        // Recreate markers with popups
+        selectedGeometry.markers.forEach(coords => {
+          const popupContent = document.createElement('div');
+          popupContent.innerHTML = `<p>Lat: ${coords.lat}</p><p>Lng: ${coords.lng}</p>`;
+
+          const marker = new mapboxgl.Marker()
+            .setLngLat(coords)
+            .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
+            .addTo(this.map);
+
+          this.markers.push(marker);
+        });
+
+        // Draw the geometry based on saved coordinates
+        if (selectedGeometry.polygonCoordinates) {
+          this.drawPolygonFeature(selectedGeometry.polygonCoordinates);
+        } else if (selectedGeometry.lineCoordinates) {
+          this.drawPolyline(selectedGeometry.lineCoordinates);
+        }
+
+        // Calculate and display area/perimeter or distance
+        if (selectedGeometry.polygonCoordinates) {
+          this.showInfoBox = true;
+          this.area = this.calculatePolygonArea(selectedGeometry.polygonCoordinates);
+          this.perimeter = this.calculatePolygonPerimeter(selectedGeometry.polygonCoordinates);
+        } else if (selectedGeometry.lineCoordinates) {
+          this.showInfoBox = true;
+          const startPoint = selectedGeometry.markers[0];
+          const endPoint = selectedGeometry.markers[1];
+          const distance = turf.distance(startPoint, endPoint) * 1000; // Convert to meters
+          this.distance = distance.toFixed(2) + ' meters';
+        }
+      }
+    },
+
+    
+    deleteSavedGeometry(name) {
+      const confirmed = window.confirm(`Are you sure you want to delete "${name}"?`);
+      if (confirmed) {
+        const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
+        const updatedGeometries = savedGeometries.filter(geometry => geometry.name !== name);
+        localStorage.setItem('savedGeometries', JSON.stringify(updatedGeometries));
+        this.savedGeometries = updatedGeometries;
+        this.savedGeometries = savedGeometries;
+        this.$nextTick(() => {
+          this.savedGeometryNames = updatedGeometries.map(geometry => geometry.name);
+        });
+      }
+    },
   },
 };
 </script>
@@ -487,15 +609,15 @@ removePolyline() {
     /* max-width: 350px; */
     /* display: flex; */
   }
-input{
-  border-radius: 5px;
-}
-.mapboxgl-ctrl-geocoder--suggestion{
-  cursor: pointer;
-  padding: 2px;
-  border: solid 1px rgba(0,0,0,0.1);
-  border-radius: 5px;
-}
+  input{
+    border-radius: 5px;
+  }
+  .mapboxgl-ctrl-geocoder--suggestion{
+    cursor: pointer;
+    padding: 2px;
+    border: solid 1px rgba(0,0,0,0.1);
+    border-radius: 5px;
+  }
   .mapboxgl-ctrl-geocoder input{
     width: max-content;
 
@@ -503,9 +625,9 @@ input{
   .mapboxgl-ctrl-geocoder .mapboxgl-ctrl-icon {
     /* position: absolute; */
     background-color: red;
-    /* top: 50%; */
+    top: 50%;
     /* right: 100px;  */
-    /* transform: translateY(-50%); */
+    transform: translateY(-50%);
   }
 
   #drop_marker_button {
@@ -551,18 +673,13 @@ input{
   #drawingTools button{
     border: none;
     width: min-content;
-
     background-color: rgba(0, 0,0,0);
   }
   
   .info-box {
   background-color: rgba(255, 255, 255, 0.8);
-  /* background-color: #f9f9f9; */
   color: rgba(0, 0, 0, 0.9);
-  /* height: 50px; */
   width: 310px;
-  /* color: #fff; */
-  /* display: flex;  */
   align-items: center; /* Center align vertically */
   padding: 6px 12px;
   margin: 12px;
@@ -574,13 +691,36 @@ input{
   padding: 10px;
   margin-top: 10px;
   border-radius: 10px;
-}
+  }
 .custom-marker {
   /* Add your custom styles for the markers here */
-  background-color: #ff0000; /* For example, change the marker color to red */
+  /* background-color: #ff0000; For example, change the marker color to red */
   border-radius: 50%;
-  width: 80px;
+  width: 20px;
   height: 20px;
+  /* border: 1px solid black; */
   cursor: pointer;
+}
+
+.saveGeom{
+  z-index: 1;
+  position: absolute;
+  top: 170px;
+}
+ .showSavedGeom{
+  z-index: 1;
+  position: absolute;
+  top: 200px;
+}
+.savedGeomList {
+  z-index: 1;
+  position: absolute;
+  top: 220px;
+  background-color: rgba(255, 255, 255, 0.5);
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 5px;
+  width: 250px;
 }
 </style>
