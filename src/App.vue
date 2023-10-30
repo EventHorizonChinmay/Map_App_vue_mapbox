@@ -1,11 +1,62 @@
+
+<template>
+  <div id="layout">
+
+    <div id="sidebar">
+      Longitude: <input v-model="lng" type="number"/>
+      Latitude: <input v-model="lat"  type="number"/>&nbsp|&nbsp
+      <div class="btncontainer">
+      <button @click="location = { lng:lng  , lat:lat, zoom: 7, pitch:0, bearing: 0};
+      lng=''; lat=''" id="searchbtn"> 
+      <!-- <img src="search"/> -->
+    </button> </div>
+      <!-- 🔎 -->
+      <div class="btncontainer">
+      <button @click="location = {lng: 77.641622, lat: 12.911872, zoom: 16.5, pitch:0 , bearing: 0 }" id="resetbtn"></button>
+    </div>
+      <!-- ↻ -->
+    </div>
+
+    <div id="sidebar2">
+      Longitude: <b style="font-weight: 600;margin:10px">{{location.lng.toFixed(2) }}</b> |
+      Latitude: <b style="font-weight: 600; ;margin:10px">{{ location.lat.toFixed(2) }}</b> |
+      Zoom: <b style="font-weight: 600;margin-left:10px; ">{{ location.zoom.toFixed(1) }} X</b> 
+    </div>
+
+    <div id="errorMsg">
+      {{ Math.abs(lng)>180 || Math.abs(lat)>90 ? "Outside the limits of Earth" :'' }}
+    </div>
+    
+    <!-- @transitionComplete="hideIntroScreen"  -->
+    <IntroScreen v-if="showIntroScreen"  
+    @transitionComplete="hideIntroScreen"
+    />
+    <Map v-else  v-model="location"
+      :style="mapStyles[currentStyleIndex]"/>
+    <!-- <Map
+      v-model="location"
+      :style="mapStyles[currentStyleIndex]"
+    /> -->
+  </div>
+</template>
+
 <script>
 import search from './assets/search.gif'
 import Map from "./components/Map.vue";
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
+import IntroScreen from './components/IntroScreen.vue'
+// import Map from '@/components/Map.vue'
+
 let height = window.innerHeight
 export default {
   components: {
+    IntroScreen,
     Map,
+  },
+  mounted() {
+    setTimeout(() => {
+      this.showIntroScreen = false;
+    }, 6000);
   },
 
   data: () => ({
@@ -15,14 +66,17 @@ export default {
       bearing: 0,
       pitch: 0,
       zoom: 17.5,
+      isFirstLoad: true,
     },
     search,
+    showIntroScreen: true,
     height: window.innerHeight,
     currentStyleIndex: 1, // Track the index of the current map style
     mapStyles: [
       "mapbox://styles/mapbox/satellite-streets-v11",
       "mapbox://styles/mapbox/streets-v12",
     ],
+    
   }),
 
   methods: {
@@ -30,54 +84,29 @@ export default {
       this.currentStyleIndex =
         (this.currentStyleIndex + 1) % this.mapStyles.length;
     },
+    hideIntroScreen() {
+      this.showIntroScreen = false;
+    }
   },
 };
 
 </script>
 
-<template>
-  <div id="layout">
-
-    <div id="sidebar">
-      <!-- Windows Height:  <p>{{height}}</p> -->
-      Longitude: <input v-model="lng" type="number"/>
-      Latitude: <input v-model="lat"  type="number"/> |
-      <div class="btncontainer">
-      <button @click="location = { lng:lng  , lat:lat, zoom: 7, pitch:0, bearing: 0};
-      lng=''; lat=''" id="searchbtn">🔍
-      <!-- <img src="search"/> -->
-    </button> </div>
-      <!-- 🔎 -->
-      <div class="btncontainer">
-      <button @click="location = {lng: 77.641622, lat: 12.911872, zoom: 16.5, pitch:0 , bearing: 0 }" id="resetbtn">🔁</button>
-    </div>
-      <!-- ↻ -->
-    </div>
-    <div id="sidebar2">
-      Longitude: <b style="font-weight: 600;margin:10px">{{location.lng.toFixed(2) }}</b> |
-      Latitude: <b style="font-weight: 600; ;margin:10px">{{ location.lat.toFixed(2) }}</b> |
-      Zoom: <b style="font-weight: 600;margin-left:10px; ">{{ location.zoom.toFixed(1) }} X</b> 
-    </div>
-    <div id="errorMsg">
-      {{ Math.abs(lng)>180 || Math.abs(lat)>90 ? "Outside the limits of Earth" :'' }}
-    </div>
-    <Map
-      v-model="location"
-      :style="mapStyles[currentStyleIndex]"
-    />
-  </div>
-</template>
 
 <style>
 #layout {
+  font-family: 'Chivo Mono', sans-serif;
   flex: 1;
   display: flex;
 }
 
 #sidebar2 {
-  background-color: rgba(255, 255, 255, 0.5);
-  border: 5px solid rgba(255,255,255,0.1);
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 0px 10px white;
   color: rgba(0, 0, 0, 0.9);
+  font-family: 'Chivo Mono', sans-serif;
+
   font-weight: 500;
   padding: 6px 18px;
   z-index: 1;
@@ -95,11 +124,13 @@ export default {
   margin-right: 5px;
 }
 #sidebar {
-  /* background-color: rgba(35, 55, 75, 0.9); */
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 0px 10px rgba(100,100,100,1);
   color: rgba(0, 0, 0, 0.9);
+  font-family: 'Chivo Mono', sans-serif;
   height: 50px;
-  width: 360px;
+  width:440px;
   /* color: #fff; */
   display: flex; 
   align-items: center; /* Center align vertically */
@@ -111,6 +142,11 @@ export default {
   left: 0;
   margin: 12px;
   border-radius: 10px;
+  font-family: 'Chivo Mono', sans-serif;
+
+}
+.btncontainer{
+  width: 50px;
 }
 #errorMsg {
   color: red;
@@ -130,22 +166,67 @@ input{
 
 #sidebar .sidebar #btncontainer .btncontainer{
   width: 50px;
+  border: 1px solid rgba(100,100,100,1);
+  box-shadow: 2px 2px 2px rgba(100,100,100,1);
   background-color: black;
 
 }
-#searchbtn, .searchbtn, .resetbtn, #resetbtn{
-  background-color: rgba(35 ,55, 76,0);
-  /* background-color: rgba(255,255,255,9); */
-  border: 1px solid rgba(255,255,255,0.5);
-  /* box-shadow: .5px 0.5px 1px rgba(200,200,200,0.8); */
-  padding: 0px;
+
+#resetbtn, .resetbtn{
+  width: 30px;
+  height: 30px;
+  background-image: url('@/assets/refresh.png'); 
+  background-color: white;
+  background-size: cover;
+  /* border: none; */
+  /* border: 2px white solid; */
   border-radius: 5px;
   cursor: pointer;
-  margin: 5px;
+}
+#resetbtn:hover{
+  width: 35px;
+  height:35px;
+  background-image: url('@/assets/refresh.gif'); /* Replace with your GIF path */
+  animation: playGif 1s infinite;
+  transition: 0.2s ease;
+}
+
+ /* .resetbtn, #resetbtn */
+ #searchbtn, .searchbtn {
+  width: 30px;
+  height: 30px;
+  background-image: url('@/assets/search.png'); 
+  background-color: white;
+  background-size: contain;
+  /* border: none; */
+  /* border: 2px white solid; */
+  border-radius: 5px;
+  cursor: pointer;
+}
+#searchbtn:hover{
+  width: 35px;
+  height:35px;
+  background-image: url('@/assets/search.gif'); /* Replace with your GIF path */
+  animation: playGif 1s infinite;
+  transition: 0.2s ease;
 }
 #searchbtn:hover, .searchbtn:hover, .resetbtn:hover, #resetbtn:hover{
-  border: 2px solid rgba(0,0,0,0.1);
-  box-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+  border: 1px solid rgba(100,100,100,1);
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  padding: 2px;
   /* background-color: black; */
 }
+
+
+@keyframes playGif {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+  }
 </style>

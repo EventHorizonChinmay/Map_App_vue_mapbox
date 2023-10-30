@@ -59,7 +59,7 @@
       <div ref="searchdiv" id="search-div"></div>
       
       <div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
-        <p v-if="markers.length === 2" style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +'kms' }} </span></p>
+        <p v-if="markers.length === 2">Distance: {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +'kms' }} </p>
         <p v-if="polygonLayerId" style="font-weight: 600;">Area &nbsp  &nbsp &nbsp:<span style="font-weight: 800; font-size:small;"> &nbsp {{ area < 1e6 ? area.toFixed(3) + ' sq meters' : (area/1e6).toFixed(3) + ' sq kms' }}</span> </p>
         <p v-if="polygonLayerId" style="font-weight: 600;">Perimeter : &nbsp <span style="font-weight: 800;  font-size:small;">{{ perimeter<1 ? perimeter.toFixed(3)*1000 + ' meters' : perimeter.toFixed(3) +' kms' }} </span></p>
       </div>
@@ -69,7 +69,7 @@
     
       <div class="savedGeomList" v-if="savedGeometries.length > 0">
         <div class="GeomList">
-          <h3 style="margin-bottom: 12px; text-align: center; font-weight: 700; font-size: medium;">Saved Geometries</h3>
+          <h3 style="margin-bottom: 12px; text-align: center;">Saved Geometries</h3>
           <div  v-for="(geometry, index) in savedGeometries" :key="index" 
           class="GeomEntry hidden">
             
@@ -175,7 +175,7 @@ export default {
       const map = this.map;
 
       if (curr.lng != next.lng || curr.lat != next.lat)
-        map.setCenter({ lng: next.lng.toFixed(3), lat: next.lat.toFixed(3) });
+        map.setCenter({ lng: next.lng, lat: next.lat });
       if (curr.pitch != next.pitch) map.setPitch(next.pitch);
       if (curr.bearing != next.bearing) map.setBearing(next.bearing);
       if (curr.zoom != next.zoom) map.setZoom(next.zoom);
@@ -201,7 +201,7 @@ export default {
     dropMarker(e) {
       const coordinates = e.lngLat;
       const popupContent = document.createElement('div');
-      popupContent.innerHTML = `<p>Lat: ${coordinates.lat.toFixed(3)}</p><p> Lng: ${coordinates.lng.toFixed(3)}</p>`;
+      popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
 
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'Delete';
@@ -279,7 +279,7 @@ export default {
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       const distance = R * c;
-      this.distance = distance;
+      this.distance = distance.toFixed(2);
       this.showInfoBox = true;
 
       console.log(`Distance between points: ${distance} kilometers`);
@@ -317,7 +317,7 @@ export default {
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       const distance = R * c;
-      this.distance = distance;
+      this.distance = distance.toFixed(2);
       this.showInfoBox = true;
 
       console.log(`Distance between points: ${distance} kilometers`);
@@ -348,7 +348,6 @@ export default {
 
 
       if (this.markers.length === 2) {
-        console.log('-------------------------',this.markers.length,'-------------------------')
         const startPoint = this.markers[0].getLngLat();
         const endPoint = this.markers[1].getLngLat();
 
@@ -369,7 +368,7 @@ export default {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         const distance = R * c;
-        this.distance = distance
+        this.distance = distance.toFixed(2);
         this.showInfoBox = true;
 
         console.log(`Distance between points: ${distance} kilometers`);
@@ -566,12 +565,11 @@ export default {
 
           this.markers.push(marker);
         });
-        console.log('-0-0-0-0-0-0-0-0-0-0-0-0-0-0',selectedGeometry.lineCoordinates)
+
         if (selectedGeometry.polygonCoordinates) {
           this.drawPolygonFeature(selectedGeometry.polygonCoordinates);
         } else if (selectedGeometry.lineCoordinates) {
           this.drawPolyline(selectedGeometry.lineCoordinates);
-          
         }
 
         if (selectedGeometry.polygonCoordinates) {
@@ -582,35 +580,8 @@ export default {
           this.showInfoBox = true;
           const startPoint = selectedGeometry.markers[0];
           const endPoint = selectedGeometry.markers[1];
-          console.log(startPoint, endPoint)
-          // const distance = turf.distance(startPoint, endPoint) * 1000;
-          // this.distance = distance;
-
-          // ///////////////////////////////////////
-          ///////////////////////////////////////////
-            //   const startPoint = this.markers[0].getLngLat();
-            // const endPoint = this.markers[1].getLngLat();
-
-            const lineCoordinates = [startPoint, endPoint];
-            this.drawPolyline(lineCoordinates);
-
-            const R = 6371; 
-            const lat1 = startPoint.lat * (Math.PI / 180);
-            const lat2 = endPoint.lat * (Math.PI / 180);
-            const lon1 = startPoint.lng * (Math.PI / 180);
-            const lon2 = endPoint.lng * (Math.PI / 180);
-
-            const dLat = lat2 - lat1;
-            const dLon = lon2 - lon1;
-
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            const distance = R * c;
-            this.distance = distance
-              ///////////////////////////////////////////
-          console.log(distance)
+          const distance = turf.distance(startPoint, endPoint) * 1000;
+          this.distance = distance.toFixed(2) + ' meters';
         }
       }
     },
@@ -807,13 +778,13 @@ export default {
   color: rgba(0, 0, 0, 0.9);
   font-family: 'Chivo Mono', sans-serif;
   /* font-weight: 900; */
-  width: 280px;
+  width: 310px;
   align-items: center; /* Center align vertically */
   padding: 6px 12px;
   margin: 12px;
-  z-index: 3;
+  z-index: 2;
   position: absolute;
-  bottom: 70px;
+  top: 600px;
   left: 20px;
   border: 1px solid rgba(100,100,100,1);
   padding: 10px;
