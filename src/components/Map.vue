@@ -1,6 +1,8 @@
 <template>
   <div ref="mapContainer" class="map-container">
-      
+    <div v-if="mapLoadingError" class="error-message">
+      <p>Sorry, something seems to be broken.</p>
+    </div>
       <button id="toggle_button" title="Toogle Map Style" @click="toggleStyle">Toggle Map Style</button>
       <div >
         <button 
@@ -131,6 +133,7 @@ export default {
       savedGeometries: [],
       selectedGeometryForDeletion: null,
       hovered: false,
+      mapLoadingError: false,
     };
   },
   computed: {
@@ -150,7 +153,10 @@ export default {
       pitch,
       zoom: zoom,
     });
-
+    map.on("error", (e) => {
+      console.error(e);
+      this.mapLoadingError = true;
+    });
     const updateLocation = () => this.$emit("update:modelValue", this.getLocation());
 
     map.on("move", updateLocation);
@@ -688,27 +694,55 @@ export default {
   }
 
   .mapboxgl-ctrl-geocoder {
-    padding: 15px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-left: 15px ;
     z-index: 1;
     /* position: absolute;
     top: 0px;
     left: 800px; */
     border-radius: 5px;
-    background-color:rgba(0255,0255,255,0.8);
-    width: 250px;
+    background-color:rgba(0255,0255,255,0.9);
+    /* background-color: red; */
+    width: 260px;
     border: 1px solid rgba(100,100,100,1);
     box-shadow: 0 0 5px rgba(100,100,100,1);
+    /* display: flex; */
     /* min-width: 250px; */
     
     /* max-width: 350px; */
     /* display: flex; */
   }
+  .mapboxgl-ctrl-geocoder--input{
+    padding:15px;
+    padding-right: 0;
+  }
+  .mapboxgl-ctrl-geocoder--button{
+    position: absolute;
+    top:-35px;
+    right: -10px;
+    width: 35px;
+    height: 35px;
+    /* background-color: green; */
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+  }
   input{
     font-family: 'Chivo Mono', sans-serif;
     border-radius: 5px;
   }
+  .mapboxgl-ctrl-geocoder--button:hover{
+    background-color: black;
+
+  }
   .mapboxgl-ctrl-geocoder--suggestion{
+    
     cursor: pointer;
+    color:rgb(30, 29, 29);
     padding: 2px;
     border: solid 1px rgba(0,0,0,0.1);
     border-radius: 5px;
@@ -719,13 +753,48 @@ export default {
   }
   .mapboxgl-ctrl-geocoder .mapboxgl-ctrl-icon {
     /* position: absolute; */
-    background-color: red;
+    /* background-color: red; */
     top: 50%;
     /* right: 100px;  */
     transform: translateY(-50%);
   }
+  a{
+    color: white;
+  }
+  .suggestions, .mapboxgl-ctrl-geocoder--suggestion li{
+    color:black;
+    margin-left: -20px;
+    margin-right: 5px;
+    margin-top:5px;
+    /* box-shadow: 0 1px 5px rgba(0,0,0,0.5); */
+    /* width: 20px; */
+  }
+  li{
+    /* border:5px solid red */
+    margin-left:5px;
+  }
+  .mapboxgl-ctrl-geocoder--suggestion-title{
+    font-weight: 900;
+  }
+  
+  .mapboxgl-ctrl-geocoder--icon-search {
+    margin-right: 10px;
+    margin-top: -10px;
+    padding-top: 15px;
+    /* padding-bottom: -5px; */
+    height: 30px;
+    width: auto;
+    /* width: 50px; */
+    /* background-color: white; */
+    /* position: absolute; */
+    /* top: 5px; */
+    /* margin : 5px; */
 
-
+    /* z-index: 1; */
+  }
+  .mapboxgl-ctrl-geocoder--icon-loading{
+  display: none;
+}
   #drop_marker_button {
     z-index: 1;
     font-family: 'Chivo Mono', sans-serif;
@@ -989,5 +1058,12 @@ export default {
   100% {
     transform: scale(1);
   }
+}
+.error-message {
+  color: red;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
 }
 </style>

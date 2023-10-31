@@ -1,15 +1,17 @@
 <template>
-  <div class="intro-screen" @click="transitionComplete" style="cursor: pointer;">
-    <div><h1 style="text-align: center; ">Chinmays Map</h1>
+  <div class="intro-screen" 
+  @click="transitionComplete" 
+  style="cursor: pointer;">
+    <div><h1 style="text-align: center; ">Chinmay's Map</h1>
     <p style="text-align: center; margin-top: 10px; font-weight: 550; ">For</p>
     <br/>
     <p style="text-align: center; "><img src="https://uploads-ssl.webflow.com/5d490ccd3cf49e0bd0ec972e/5d9f242549b5406b6852e112_skylark-drones-logo.png" alt="Skylark Drones" style=" width: auto;
   height: 100px; "/></p>
   <br/>
   <p style="text-align: center; font-size: small;"> &lt click anywhere to continue &gt </p>
-    </div>
+</div>
     <!-- <button @click="transitionComplete" >Continue</button> -->
- 
+  
   </div>
 </template>
 
@@ -19,14 +21,18 @@ export default {
   methods: {
     transitionComplete() {
       this.$emit('transitionComplete');
+    },
+    dismissIntroScreen() {
+      this.$emit('introScreenDismissed')
     }
+    
   }
 }
 </script>
 
 <style scoped>
 .intro-screen {
-    z-index: 2;
+    z-index: 3;
   position: fixed;
   top: 0;
   left: 0;

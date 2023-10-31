@@ -29,13 +29,11 @@
     <!-- @transitionComplete="hideIntroScreen"  -->
     <IntroScreen v-if="showIntroScreen"  
     @transitionComplete="hideIntroScreen"
+    
     />
-    <Map v-else  v-model="location"
+    <Map  v-model="location"
       :style="mapStyles[currentStyleIndex]"/>
-    <!-- <Map
-      v-model="location"
-      :style="mapStyles[currentStyleIndex]"
-    /> -->
+
   </div>
 </template>
 
