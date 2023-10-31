@@ -1,9 +1,13 @@
 <template>
-  <div ref="mapContainer" class="map-container">
-    <div v-if="mapLoadingError" class="error-message">
-      <p>Sorry, something seems to be broken.</p>
+  <div v-if="mapLoadingError" class="error-message">
+      <p>Sorry, something seems to be broken. Try again later...</p>
     </div>
-      <button id="toggle_button" title="Toogle Map Style" @click="toggleStyle">Toggle Map Style</button>
+  <div v-else ref="mapContainer" class="map-container">
+    
+
+      <button id="toggle_button" title="Toogle Map Style" @click="toggleStyle"> <span class="location">
+        <!-- Toggle Map Style -->
+      </span> </button>
       <div >
         <button 
         id="drop_marker_button" alt="OK" title="OK" v-if="markerMode" 
@@ -60,11 +64,11 @@
       <!-- </div> -->
       <div ref="searchdiv" id="search-div"></div>
       
-      <div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
-        <p v-if="markers.length === 2" style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +'kms' }} </span></p>
-        <p v-if="polygonLayerId" style="font-weight: 600;">Area &nbsp  &nbsp &nbsp:<span style="font-weight: 800; font-size:small;"> &nbsp {{ area < 1e6 ? area.toFixed(3) + ' sq meters' : (area/1e6).toFixed(3) + ' sq kms' }}</span> </p>
-        <p v-if="polygonLayerId" style="font-weight: 600;">Perimeter : &nbsp <span style="font-weight: 800;  font-size:small;">{{ perimeter<1 ? perimeter.toFixed(3)*1000 + ' meters' : perimeter.toFixed(3) +' kms' }} </span></p>
-      </div>
+<div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
+  <p v-if="markers.length === 2" style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +' kms' }} </span></p>
+  <p v-if="polygonLayerId" style="font-weight: 600;">Area &nbsp  &nbsp &nbsp:<span style="font-weight: 800; font-size:small;"> &nbsp {{ area < 1e6 ? area.toFixed(3) + ' meters' : (area/1e6).toFixed(3) + ' kms' }}<sup style="font-weight:800">2</sup> </span> </p>
+  <p v-if="polygonLayerId" style="font-weight: 600;">Perimeter : &nbsp <span style="font-weight: 800;  font-size:small;">{{ perimeter<1 ? perimeter.toFixed(3)*1000 + ' meters' : perimeter.toFixed(3) +' kms' }} </span></p>
+</div>
       <button class="saveGeom" v-if="markers.length>0" @click="saveGeometry" title="Save Geometry">
         <!-- Save Geometry -->
       </button>
@@ -647,8 +651,7 @@ export default {
     flex: 1;
   }
 
-  #toggle_button {
-    /* background: linear-gradient(to right, teal 50%, #FFFFFF 50%);  */
+  /* #toggle_button {
     background-image: url('https://cdn.supsystic.com/wp-content/uploads/2018/08/Different-Map-Styles-3-1024x444.png');
     background-image: url('@/assets/toggleMapStyle2.png');
     background-size: cover;
@@ -682,12 +685,46 @@ export default {
     color: black;
     font-weight: 500;transition: 0.2s ease;
 
+  } */
+  #toggle_button{
+    position: absolute;
+    bottom: 0px;
+    right: 0;
+    margin-right:auto;
+    /* margin: none; */
+    /* padding: none; */
+    width: 60px;
+    height: 60px;
+    box-shadow: none;
+    background-size: contain;
+    background-image: url('@/assets/toggleMapStyle.png');
+    z-index: 1;
+    position: absolute;
+    bottom: 0px;
+    right: 0;
+    margin: 30px;
+    cursor: pointer;
+    transition: 0.2s ease;
+    border-radius: 50%;
+    text-shadow: 0 0 5px white;
+    box-shadow: -5px 2px 5px black;
+    color: black;
+    font-weight: 500;
+    font-size: large;
+    border: 3px solid black;
+  }
+  #toggle_button:hover{
+    background-size: contain;
+    background-image: url('@/assets/toggleMapStyle2.png'); 
+    border-radius: 50%;
+    box-shadow: 5px -2px 5px black;
   }
 
   #searchdiv {
     height: fit-content;
     font-family: 'Chivo Mono', sans-serif;
     width: fit-content;
+    /* margin-right: 50px; */
     background-color: white;
     border: 1px solid rgba(100,100,100,1);
     box-shadow:0 0 5px rgba(100,100,100,1);
@@ -698,6 +735,7 @@ export default {
     padding-bottom: 15px;
     padding-left: 15px ;
     z-index: 1;
+    margin-right: 50px;
     /* position: absolute;
     top: 0px;
     left: 800px; */
@@ -707,15 +745,17 @@ export default {
     width: 260px;
     border: 1px solid rgba(100,100,100,1);
     box-shadow: 0 0 5px rgba(100,100,100,1);
-    /* display: flex; */
-    /* min-width: 250px; */
-    
-    /* max-width: 350px; */
-    /* display: flex; */
+
   }
   .mapboxgl-ctrl-geocoder--input{
     padding:15px;
     padding-right: 0;
+  }
+  .mapboxgl-ctrl-geocoder{
+    position: absolute;
+    border-radius: 10px;
+    right: 10px;
+    /* background-color: red; */
   }
   .mapboxgl-ctrl-geocoder--button{
     position: absolute;
@@ -731,13 +771,14 @@ export default {
     border-radius: 50%;
     cursor: pointer;
   }
+  .mapboxgl-ctrl-geocoder--button:hover{
+    background: white;
+    background-size: cover;
+    border: 2px solid red;
+  }
   input{
     font-family: 'Chivo Mono', sans-serif;
     border-radius: 5px;
-  }
-  .mapboxgl-ctrl-geocoder--button:hover{
-    background-color: black;
-
   }
   .mapboxgl-ctrl-geocoder--suggestion{
     
@@ -756,6 +797,7 @@ export default {
     /* background-color: red; */
     top: 50%;
     /* right: 100px;  */
+    border-radius: 10px;
     transform: translateY(-50%);
   }
   a{
@@ -925,10 +967,12 @@ export default {
   padding: 10px;
   /* margin: 50px; */
   height: fit-content;
-  border-radius: 5px;
-
+  /* max-height: 80%; */
+  border-radius: 10px;
+  width: 300px;
   border: 1px solid rgba(100,100,100,1);
-  width:fit-content;
+  /* width:fit-content; */
+  padding-bottom: 50px;
   background-color: white;
   box-shadow: 0 0 10px rgba(100,100,100,1);
 }
@@ -944,14 +988,15 @@ export default {
   height: fit-content;
   font-family: 'Chivo Mono', sans-serif;
   background-color: rgba(255,255,255,10);
-  max-height: 25rem;
+  max-height: 20rem;
+  width: fit-content;
+  margin: auto;
+  /* margin-left: 20px; */
 }
 
 .GeomEntry{
-    margin: 30px;
-  width: 200px;
-  max-width: 200px;
   display: flex;
+  margin: auto;
   font-family: 'Chivo Mono', sans-serif;
   margin-bottom: 15px;
   padding-bottom: 5px;
@@ -1065,5 +1110,58 @@ export default {
   font-weight: bold;
   text-align: center;
   margin-top: 20px;
+}
+
+
+
+@media screen and (max-width: 800px) {
+.mapboxgl-ctrl-geocoder {
+    position: absolute;
+    top: 00px;
+    /* padding-top: 15px; */
+    padding-bottom: 15px;
+    padding-left: 15px ;
+    z-index: 1;
+    margin-right: 50px;
+    border-radius: 10px;
+    background-color:rgba(0255,0255,255,0.9);
+    /* background-color: red; */
+    width: 260px;
+    border: 1px solid rgba(100,100,100,1);
+    box-shadow: 0 0 5px rgba(100,100,100,1);
+  }
+
+  .savedGeomList{
+    margin-top: -10px;
+    max-height: 50%;
+  }
+  .GeomList{
+    width: 100%;
+  }
+  #toggle_button{
+    position: absolute;
+    bottom: 0rem;
+    left:1rem;
+    margin-right:auto;
+    /* margin: none; */
+    /* padding: none; */
+    width: 60px;
+    height: 60px;
+    box-shadow: none;
+    background-size: contain;
+    background-image: url('@/assets/toggleMapStyle.png');
+  }
+  #toggle_button:hover{
+    background-size: contain;
+    background-image: url('@/assets/toggleMapStyle2.png'); 
+    box-shadow: none;
+  }
+  .info-box{
+    position: absolute;
+    bottom: 5rem;
+    right: 10px;
+    width: 260px;
+    margin-left: auto;
+  }
 }
 </style>
