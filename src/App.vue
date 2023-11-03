@@ -1,4 +1,3 @@
-
 <template>
   <div id="layout">
 
@@ -7,19 +6,21 @@
       <span class="location">Latitude:</span> <input v-model="lat"  type="number" title="Enter lattitude" placeholder="Lat"/> 
       <span class="location">Longitude:</span> <input v-model="lng" type="number" title="Enter longitude" placeholder="Lng"/>&nbsp|&nbsp
       <div class="btncontainer">
-      <button @click="location = { lng:lng  , lat:lat, zoom: 7, pitch:0, bearing: 0};
-      lng=''; lat=''" id="searchbtn" title="Search the coordinate"> 
-    </button> </div>
-      <!-- 🔎 -->
-      <div class="btncontainer">
+      <!-- <button :disabled="isSearchDisabled"  
+      @click="searchLocation"  disabled
+       id="searchbtn" title="Search the coordinate"> 
+      </button>  -->
+      <button :disabled="isSearchDisabled" @click="searchLocation" disabled id="searchbtn" title="Search the coordinate"></button>
+
+    </div>
+    <div class="btncontainer">
       <button title="Refresh Map" @click="location = {lng: 77.641622, lat: 12.911872, zoom: 16.5, pitch:0 , bearing: 0 }" id="resetbtn"></button>
     </div>
-      <!-- ↻ -->
     </div>
 
     <div id="sidebar2" title="Current location">
-      <span class="location"> Latitude:</span> <b style="font-weight: 600; ;margin:10px">{{ location.lat.toFixed(2)+',' }}</b>
-      <span class="location">Longitude:</span>  <b style="font-weight: 600;margin:10px">{{location.lng.toFixed(2) }}</b> |
+      <span class="location"> Latitude:</span> <b style="font-weight: 600; ;margin:10px">{{location.lat.toFixed(2) && location.lat.toFixed(2)+',' }}</b>
+      <span class="location">Longitude:</span>  <b style="font-weight: 600;margin:10px">{{location.lng.toFixed(2) && location.lng.toFixed(2) }}</b> |
       <span class="location">Zoom:</span> <b style="font-weight: 600;margin-left:10px; ">{{ location.zoom.toFixed(1) }} X</b> 
     </div>
 
@@ -34,15 +35,17 @@
     />
     <Map  v-model="location"
       :style="mapStyles[currentStyleIndex]"/>
-
   </div>
 </template>
 
 <script>
 import search from './assets/search.gif'
 import Map from "./components/Map.vue";
+// import Map from "./components/Map copy.vue";
+
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
 import IntroScreen from './components/IntroScreen.vue'
+import { isNumber } from '@turf/turf';
 // import Map from '@/components/Map.vue'
 
 let height = window.innerHeight
@@ -56,23 +59,30 @@ export default {
       this.showIntroScreen = false;
     }, 6000);
   },
-
+  computed: {
+    isSearchDisabled() {
+      return this.lat === '' || this.lng === '';
+      // return !isNumber(+this.lat) || !isNumber(+this.lng);
+      
+    }
+  },
   data: () => ({
     location: {
       lng: 77.641622,
       lat: 12.911872,
       bearing: 0,
       pitch: 0,
-      zoom: 17.5,
+      zoom: 16.5,
       isFirstLoad: true,
     },
     search,
     showIntroScreen: true,
     height: window.innerHeight,
-    currentStyleIndex: 1, // Track the index of the current map style
+    currentStyleIndex: 0, // Track the index of the current map style
     mapStyles: [
-      "mapbox://styles/mapbox/satellite-streets-v11",
       "mapbox://styles/mapbox/streets-v12",
+      "mapbox://styles/mapbox/satellite-streets-v11",
+      "mapbox://styles/mapbox/outdoors-v11",
     ],
     
   }),
@@ -84,7 +94,22 @@ export default {
     },
     hideIntroScreen() {
       this.showIntroScreen = false;
-    }
+    },
+    searchLocation() {
+      if (this.lat !== '' && this.lng !== '' && !isNaN(parseFloat(this.lat)) && !isNaN(parseFloat(this.lng))) {
+        this.location = {
+          lng: parseFloat(this.lng),
+          lat: parseFloat(this.lat),
+          zoom: 10,
+          pitch: 0,
+          bearing: 0
+        };
+        console.log('searched')
+        console.log(this.isSearchDisabled)
+        this.lng = '';
+        this.lat = '';
+      }
+    },
   },
 };
 

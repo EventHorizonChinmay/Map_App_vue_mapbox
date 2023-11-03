@@ -88,7 +88,7 @@
             <button id="GeomName" @click="displaySavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">{{ geometry.name }}</button>
           </div>
 
-          <div  v-for="(geometry, index) in savedGeometries" :key="index" style="background-color: red;"  class="">
+          <div  v-for="(geometry, index) in savedGeometries" :key="index" class="">
             
             <button id="deleteGeomName" @click="deleteSavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">🗑️ |</button>
             
@@ -115,7 +115,7 @@ export default {
   data() {
     return {
       map: null,
-      styleNo: 0,
+      styleNo: 1,
       mapStyles: [
         "mapbox://styles/mapbox/streets-v12",
         "mapbox://styles/mapbox/satellite-streets-v11",
@@ -966,7 +966,7 @@ export default {
   overflow-y: auto;
   padding: 10px;
   /* margin: 50px; */
-  height: fit-content;
+  height: 50%;
   /* max-height: 80%; */
   border-radius: 10px;
   width: 300px;
@@ -981,6 +981,7 @@ export default {
   display: none;
 }
 
+
 .GeomList{
   justify-content: space-between;
   border: none;
@@ -991,6 +992,7 @@ export default {
   max-height: 20rem;
   width: fit-content;
   margin: auto;
+  /* padding-bottom: 5rem; */
   /* margin-left: 20px; */
 }
 
@@ -999,19 +1001,37 @@ export default {
   margin: auto;
   font-family: 'Chivo Mono', sans-serif;
   margin-bottom: 15px;
-  padding-bottom: 5px;
+  /* height: 32px; */
+  min-height: 0;
+  /* padding-bottom: 5px; */
   justify-content: space-between;
+  background-color: rgba(0,0,0,0);
   border-bottom: 1px rgba(0, 0, 0, 0.2) solid;
   border-right: 1px rgba(0, 0, 0, 0.2) solid;
   box-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+}
+.GeomEntry:hover{
+  /* box-shadow: 0 0 3px rgba(0,0,0,0.8); */
+  min-height: 10%;
+  background-color: rgba(0,0,0,0.2);
 }
 
 #deleteGeomName{
   border: none;
   background-color: rgba(0,0,0,0);
-  width: fit-content;
+  width: 30px;
+  height: 20px;
   cursor: pointer;
+  margin: auto;
   color: rgba(0,0,0,5.8)
+}
+
+#deleteGeomName:hover{
+  font-size: larger;
+  text-shadow: 0 0 1px rgba(0,0,0,0.5);
+
+  transition: 0.1s ease-in-out;
+  /* background-color: red; */
 }
 
 #GeomName{
@@ -1021,12 +1041,19 @@ export default {
   width: 180px;
   font-family: 'Chivo Mono', sans-serif;
   max-width: 100%;
-  background-color: rgba(255,255,255,10);
+  /* background-color: rgba(255,255,255,10); */
   color: blue ;
   cursor: pointer;
   /* white-space: nowrap; */
   overflow: hidden;
   text-overflow: ellipsis;
+  
+}
+
+#GeomName:hover{
+  font-size: larger;
+  text-shadow: 0 0 1px rgba(0,0,0,0.2);
+  transition: 0.1s ease-in-out;
 }
 
 .GeomName::after {
@@ -1163,5 +1190,7 @@ export default {
     width: 260px;
     margin-left: auto;
   }
+  .mapboxgl-marker .mapboxgl-marker-anchor-center{
+    cursor:crosshair;}
 }
 </style>

@@ -5,8 +5,9 @@
     <div><h1 style="text-align: center; ">Chinmay's Map</h1>
     <p style="text-align: center; margin-top: 10px; font-weight: 550; ">For</p>
     <br/>
-    <p style="text-align: center; "><img src="https://uploads-ssl.webflow.com/5d490ccd3cf49e0bd0ec972e/5d9f242549b5406b6852e112_skylark-drones-logo.png" alt="Skylark Drones" style=" width: auto;
-  height: 100px; "/></p>
+    <p style="text-align: center; " title="Skylark Drones">
+    <img src="https://uploads-ssl.webflow.com/5d490ccd3cf49e0bd0ec972e/5d9f242549b5406b6852e112_skylark-drones-logo.png"  style=" width: auto;
+  height: 100px;" /></p>
   <br/>
   <p style="text-align: center; font-size: small;"> &lt click anywhere to continue &gt </p>
 </div>
