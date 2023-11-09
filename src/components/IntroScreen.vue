@@ -11,7 +11,6 @@
   <br/>
   <p style="text-align: center; font-size: small;"> &lt click anywhere to continue &gt </p>
 </div>
-    <!-- <button @click="transitionComplete" >Continue</button> -->
   
   </div>
 </template>
@@ -49,14 +48,6 @@ export default {
   background: radial-gradient(circle, white, black);
     
 
-  /* position: relative;
-  width: 300px;
-  height: 200px;
-  background: linear-gradient(to bottom, rgba(0, 0, 50, 0.8), rgba(0, 0, 50, 0.8)),
-              linear-gradient(to top, rgba(0, 0, 50, 0.8), rgba(0, 0, 50, 0.8)),
-              linear-gradient(to left, rgba(0, 0, 50, 0.8), rgba(0, 0, 50, 0.8)),
-              linear-gradient(to right, rgba(0, 0, 50, 0.8), rgba(0, 0, 50, 0.8));
-  border: 1px solid rgba(0, 0, 50, 0.8); */
 }
 .fade-out {
   opacity: 0.5;

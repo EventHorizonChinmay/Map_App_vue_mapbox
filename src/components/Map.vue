@@ -1,112 +1,214 @@
 <template>
   <div v-if="mapLoadingError" class="error-message">
-      <p>Sorry, something seems to be broken. Try again later...</p>
-    </div>
+    <p>Sorry, something seems to be broken. Try again later...</p>
+  </div>
   <div v-else ref="mapContainer" class="map-container">
-    
-
-      <button id="toggle_button" title="Toogle Map Style" @click="toggleStyle"> <span class="location">
+    <button id="toggle_button" title="Toogle Map Style" @click="toggleStyle">
+      <span class="location">
         <!-- Toggle Map Style -->
-      </span> </button>
-      <div >
-        <button 
-        id="drop_marker_button" alt="OK" title="OK" v-if="markerMode" 
-        @click="toggleMarkerMode">
+      </span>
+    </button>
+    <div>
+      <button
+        id="drop_marker_button"
+        alt="OK"
+        title="OK"
+        v-if="markerMode"
+        @click="toggleMarkerMode"
+      >
         <!-- {{ markerMode ? '✔️' :  "📌" }}  -->
         ✔️
-        </button> 
-      </div>
-      <button 
-      id="drop_marker_button" alt="Drop Pins" v-if="!markerMode" class="pinBtns" title="Drop Pins"
-      @click="toggleMarkerMode">
+      </button>
+    </div>
+    <button
+      id="drop_marker_button"
+      alt="Drop Pins"
+      v-if="!markerMode"
+      class="pinBtns"
+      title="Drop Pins"
+      @click="toggleMarkerMode"
+    >
       <!-- {{ markerMode ? '✔️' :  "📌" }}  -->
       <!-- 📌 -->
-      </button>
+    </button>
 
-      <button
-        v-if="markers.length > 0 && !markerMode"
-        id="drop_marker_button"
-        @click="clearFeatures" title="Remove Pins"
-      >
+    <button
+      v-if="markers.length > 0 && !markerMode"
+      id="drop_marker_button"
+      @click="clearFeatures"
+      title="Remove Pins"
+    >
       ❌
-      </button>
+    </button>
 
+    <!-- <div ref="searchdiv" id="search-div"></div> -->
 
-      <!-- <div ref="searchdiv" id="search-div"></div> -->
-      
-      <!-- <div id="drawingTools">  -->
-        <button
-          v-if="!drawingMode && markers.length <= 0" title="Draw on the map"
-          id="start_drawing_button"
-          class="drawModeStart drawingTools"
-          @click="startDrawing"
-        > 
-        <!-- 🖋️ -->
-        </button>
-        <button
-          v-if="!drawingMode && markers.length > 0" title="Clear drawings "
-          id="clear_features_button drawingTools"  class="drawingTools"
-          @click="clearFeatures"
+    <!-- <div id="drawingTools">  -->
+    <button
+      v-if="!drawingMode && markers.length <= 0"
+      title="Draw on the map"
+      id="start_drawing_button"
+      class="drawModeStart drawingTools"
+      @click="startDrawing"
+    >
+      <!-- 🖋️ -->
+    </button>
+    <button
+      v-if="!drawingMode && markers.length > 0"
+      title="Clear drawings "
+      id="clear_features_button drawingTools"
+      class="drawingTools"
+      @click="clearFeatures"
+    >
+      <!-- 🗑️ -->
+      ❌
+    </button>
+
+    <button
+      v-if="drawingMode"
+      id="end_drawing_button"
+      class="drawingTools"
+      title="OK"
+      @click="endDrawing"
+    >
+      <!-- 👍🏼 -->
+      ✔️
+    </button>
+    <!-- </div> -->
+    <div ref="searchdiv" id="search-div"></div>
+
+    <div
+      v-if="
+        showInfoBox && !markerMode && (markers.length === 2 || polygonLayerId)
+      "
+      class="info-box"
+    >
+      <p v-if="markers.length === 2" style="font-weight: 600">
+        Distance:
+        <span style="font-weight: 800; font-size: small">
+          {{
+            distance < 1
+              ? (distance * 1000).toFixed(3) + " meters"
+              : distance.toFixed(3) + " kms"
+          }}
+        </span>
+      </p>
+      <p v-if="polygonLayerId" style="font-weight: 600">
+        Area &nbsp &nbsp &nbsp:<span style="font-weight: 800; font-size: small">
+          &nbsp
+          {{
+            area < 1e6
+              ? area.toFixed(3) + " meters"
+              : (area / 1e6).toFixed(3) + " kms"
+          }}<sup style="font-weight: 800">2</sup>
+        </span>
+      </p>
+      <p v-if="polygonLayerId" style="font-weight: 600">
+        Perimeter : &nbsp
+        <span style="font-weight: 800; font-size: small"
+          >{{
+            perimeter < 1
+              ? perimeter.toFixed(3) * 1000 + " meters"
+              : perimeter.toFixed(3) + " kms"
+          }}
+        </span>
+      </p>
+    </div>
+    <button
+      class="saveGeom"
+      v-if="markers.length > 0"
+      @click="saveGeometry"
+      title="Save Geometry"
+    >
+      <!-- Save Geometry -->
+    </button>
+
+    <div
+      class="savedGeomList"
+      ref="savedGeomList"
+      v-show="savedGeometries.length > 0"
+      >
+      <!-- v-if="savedGeometries.length > 0" -->
+      <div class="GeomList">
+        <h3
+          style="
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: medium;
+          "
         >
-        <!-- 🗑️ -->
-        ❌
-        </button>
-
-        <button
-          v-if="drawingMode"
-          id="end_drawing_button"
-          class="drawingTools" title="OK"
-          @click="endDrawing"
+          Saved Geometries
+        </h3>
+        <div
+          v-for="(geometry, index) in savedGeometries"
+          :key="index"
+          class="GeomEntry hidden"
         >
-        <!-- 👍🏼 -->
-        ✔️
-        </button>
-      <!-- </div> -->
-      <div ref="searchdiv" id="search-div"></div>
-      
-<div v-if="showInfoBox&& !markerMode &&  (markers.length === 2 || polygonLayerId)" class="info-box">
-  <p v-if="markers.length === 2 " style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +' kms' }} </span></p>
-  <p v-if="polygonLayerId" style="font-weight: 600;">Area &nbsp  &nbsp &nbsp:<span style="font-weight: 800; font-size:small;"> &nbsp {{ area < 1e6 ? area.toFixed(3) + ' meters' : (area/1e6).toFixed(3) + ' kms' }}<sup style="font-weight:800">2</sup> </span> </p>
-  <p v-if="polygonLayerId" style="font-weight: 600;">Perimeter : &nbsp <span style="font-weight: 800;  font-size:small;">{{ perimeter<1 ? perimeter.toFixed(3)*1000 + ' meters' : perimeter.toFixed(3) +' kms' }} </span></p>
-</div>
-      <button class="saveGeom" v-if="markers.length>0" @click="saveGeometry" title="Save Geometry">
-        <!-- Save Geometry -->
-      </button>
-    
-      <div class="savedGeomList" v-show="savedGeometries.length > 0" v-if="savedGeometries.length > 0" >
-        <div class="GeomList">
-          <h3 style="margin-bottom: 12px; text-align: center; font-weight: 700; font-size: medium;">Saved Geometries</h3>
-          <div  v-for="(geometry, index) in savedGeometries" :key="index" 
-          class="GeomEntry hidden">
-            
-            <button id="deleteGeomName" @click="deleteSavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion !== geometry.name">🗑️ </button>
-            
-            <button id="deleteGeomName" @click="deleteSavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">🗑️ |</button>
-            
-            <button id="GeomName" @click="displaySavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion !== geometry.name">{{ geometry.name }}</button>
-            
-            <button id="GeomName" @click="displaySavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">{{ geometry.name }}</button>
-          </div>
+          <button
+            id="deleteGeomName"
+            @click="deleteSavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion !== geometry.name"
+          >
+            🗑️
+          </button>
 
-          <div  v-for="(geometry, index) in savedGeometries" :key="index" class="">
-            
-            <button id="deleteGeomName" @click="deleteSavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">🗑️ |</button>
-            
-            <button id="GeomName" @click="displaySavedGeometry(geometry.name)" v-if="selectedGeometryForDeletion === geometry.name" class="hidden">{{ geometry.name }}</button>
-          </div>
+          <button
+            id="deleteGeomName"
+            @click="deleteSavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion === geometry.name"
+            class="hidden"
+          >
+            🗑️ |
+          </button>
 
-      </div>
+          <button
+            id="GeomName"
+            @click="displaySavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion !== geometry.name"
+          >
+            {{ geometry.name }}
+          </button>
 
-
-  </div>
-  <!-- <div style="position: absolute; bottom: 0px ; right:20px; width: fit-content;"><a href="https://www.flaticon.com/free-animated-icons/location" title="location animated icons">Location animated icons created by Freepik - Flaticon</a> </div> -->
+          <button
+            id="GeomName"
+            @click="displaySavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion === geometry.name"
+            class="hidden"
+          >
+            {{ geometry.name }}
+          </button>
         </div>
+
+        <div v-for="(geometry, index) in savedGeometries" :key="index" class="">
+          <button
+            id="deleteGeomName"
+            @click="deleteSavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion === geometry.name"
+            class="hidden"
+          >
+            🗑️ |
+          </button>
+
+          <button
+            id="GeomName"
+            @click="displaySavedGeometry(geometry.name)"
+            v-if="selectedGeometryForDeletion === geometry.name"
+            class="hidden"
+          >
+            {{ geometry.name }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- <div style="position: absolute; bottom: 0px ; right:20px; width: fit-content;"><a href="https://www.flaticon.com/free-animated-icons/location" title="location animated icons">Location animated icons created by Freepik - Flaticon</a> </div> -->
+  </div>
 </template>
 
 <script>
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder";
-import * as turf from '@turf/turf';
+import * as turf from "@turf/turf";
 
 mapboxgl.accessToken = `pk.eyJ1IjoiY2hpbm1heWciLCJhIjoiY2xvNWc3NnF3MGF6ZzJxcWRtdTdmbGVsdyJ9.PyfJ7zptOqULwNQ5eB7RUQ`;
 
@@ -123,16 +225,16 @@ export default {
       ],
       markerMode: false,
       markers: [],
-      distancesArray: [], 
-      markerCoords: [], 
-      showSavedGeometries: false, 
+      distancesArray: [],
+      markerCoords: [],
+      showSavedGeometries: false,
       lineLayerId: null,
       drawingMode: false,
       polygonLayerId: null,
       area: null,
       perimeter: null,
       showInfoBox: false,
-      distance:null,
+      distance: null,
       savedGeometryNames: [],
       savedGeometries: [],
       selectedGeometryForDeletion: null,
@@ -142,9 +244,10 @@ export default {
   },
   computed: {
     savedGeometryNames() {
-      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-      return savedGeometries.map(geometry => geometry.name);
-    }
+      const savedGeometries =
+        JSON.parse(localStorage.getItem("savedGeometries")) || [];
+      return savedGeometries.map((geometry) => geometry.name);
+    },
   },
   mounted() {
     const { lng, lat, zoom, bearing, pitch } = this.modelValue;
@@ -161,7 +264,8 @@ export default {
       console.error(e);
       this.mapLoadingError = true;
     });
-    const updateLocation = () => this.$emit("update:modelValue", this.getLocation());
+    const updateLocation = () =>
+      this.$emit("update:modelValue", this.getLocation());
 
     map.on("move", updateLocation);
     map.on("zoom", updateLocation);
@@ -176,8 +280,8 @@ export default {
     map.addControl(geocoder);
 
     this.map = map;
-    this.savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-  
+    this.savedGeometries =
+      JSON.parse(localStorage.getItem("savedGeometries")) || [];
   },
   watch: {
     modelValue(next) {
@@ -192,7 +296,6 @@ export default {
     },
   },
   methods: {
-
     toggleStyle() {
       this.styleNo = (this.styleNo + 1) % this.mapStyles.length;
       this.map.setStyle(this.mapStyles[this.styleNo]);
@@ -200,7 +303,7 @@ export default {
 
     toggleMarkerMode() {
       this.markerMode = !this.markerMode;
-      console.log('toggleMarjerMode')
+      console.log("toggleMarjerMode");
       if (this.markerMode) {
         this.map.on("click", this.dropMarker);
       } else {
@@ -210,15 +313,19 @@ export default {
 
     dropMarker(e) {
       const coordinates = e.lngLat;
-      const popupContent = document.createElement('div');
-      popupContent.innerHTML = `<p>Lat: ${coordinates.lat.toFixed(3)}</p><p> Lng: ${coordinates.lng.toFixed(3)}</p>`;
+      const popupContent = document.createElement("div");
+      popupContent.innerHTML = `<p>Lat: ${coordinates.lat.toFixed(
+        3
+      )}</p><p> Lng: ${coordinates.lng.toFixed(3)}</p>`;
 
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "Delete";
 
       const markerIndex = this.markers.length;
 
-      deleteButton.addEventListener('click', () => this.deleteMarker(markerIndex)); 
+      deleteButton.addEventListener("click", () =>
+        this.deleteMarker(markerIndex)
+      );
       popupContent.appendChild(deleteButton);
 
       const marker = new mapboxgl.Marker()
@@ -234,16 +341,15 @@ export default {
     },
 
     deleteMarker(index) {
-      const marker = this.markers.find(marker => marker.index === index);
+      const marker = this.markers.find((marker) => marker.index === index);
       if (this.markers.length < 2) {
         this.removeLine();
       }
       if (marker) {
         marker.remove();
-        this.markers = this.markers.filter(marker => marker.index !== index);
-      }}
-      
-    ,
+        this.markers = this.markers.filter((marker) => marker.index !== index);
+      }
+    },
 
     updateLocation() {
       const curr = this.getLocation();
@@ -266,33 +372,36 @@ export default {
     },
 
     startDrawing() {
-
       this.drawingMode = true;
       if (this.markers.length === 2) {
-        this.drawLine()
-        console.log('2')
-        const coordinates = this.markers.map(marker => marker.getLngLat());
-      const startPoint = coordinates[0];
-      const endPoint = coordinates[1];
+        this.drawLine();
+        console.log("2");
+        const coordinates = this.markers.map((marker) => marker.getLngLat());
+        const startPoint = coordinates[0];
+        const endPoint = coordinates[1];
 
-      const R = 6371; 
-      const lat1 = startPoint.lat * (Math.PI / 180);
-      const lat2 = endPoint.lat * (Math.PI / 180);
-      const lon1 = startPoint.lng * (Math.PI / 180);
-      const lon2 = endPoint.lng * (Math.PI / 180);
+        const R = 6371;
+        const lat1 = startPoint.lat * (Math.PI / 180);
+        const lat2 = endPoint.lat * (Math.PI / 180);
+        const lon1 = startPoint.lng * (Math.PI / 180);
+        const lon2 = endPoint.lng * (Math.PI / 180);
 
-      const dLat = lat2 - lat1;
-      const dLon = lon2 - lon1;
+        const dLat = lat2 - lat1;
+        const dLon = lon2 - lon1;
 
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1) *
+            Math.cos(lat2) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-      const distance = R * c;
-      this.distance = distance;
-      this.showInfoBox = true;
+        const distance = R * c;
+        this.distance = distance;
+        this.showInfoBox = true;
 
-      console.log(`Distance between points: ${distance} kilometers`);
+        console.log(`Distance between points: ${distance} kilometers`);
       } else {
         this.distance = null;
         this.showInfoBox = false;
@@ -309,11 +418,11 @@ export default {
     },
 
     drawLine() {
-      const coordinates = this.markers.map(marker => marker.getLngLat());
+      const coordinates = this.markers.map((marker) => marker.getLngLat());
       const startPoint = coordinates[0];
       const endPoint = coordinates[1];
 
-      const R = 6371;  
+      const R = 6371;
       const lat1 = startPoint.lat * (Math.PI / 180);
       const lat2 = endPoint.lat * (Math.PI / 180);
       const lon1 = startPoint.lng * (Math.PI / 180);
@@ -322,8 +431,12 @@ export default {
       const dLat = lat2 - lat1;
       const dLon = lon2 - lon1;
 
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) *
+          Math.cos(lat2) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       const distance = R * c;
@@ -335,15 +448,17 @@ export default {
 
     drawPolygon(e) {
       const coordinates = e.lngLat;
-      const popupContent = document.createElement('div');
+      const popupContent = document.createElement("div");
       popupContent.innerHTML = `<p>Lat: ${coordinates.lat}</p><p> Lng: ${coordinates.lng}</p>`;
 
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "Delete";
 
       const markerIndex = this.markers.length;
 
-      deleteButton.addEventListener('click', () => this.deleteMarker(markerIndex)); 
+      deleteButton.addEventListener("click", () =>
+        this.deleteMarker(markerIndex)
+      );
       popupContent.appendChild(deleteButton);
 
       const marker = new mapboxgl.Marker()
@@ -351,21 +466,24 @@ export default {
         .setPopup(new mapboxgl.Popup().setDOMContent(popupContent))
         .addTo(this.map);
 
-      marker.getElement().classList.add('custom-marker'); 
+      marker.getElement().classList.add("custom-marker");
 
-      marker.index = markerIndex; 
+      marker.index = markerIndex;
       this.markers.push(marker);
 
-
       if (this.markers.length === 2) {
-        console.log('-------------------------',this.markers.length,'-------------------------')
+        console.log(
+          "-------------------------",
+          this.markers.length,
+          "-------------------------"
+        );
         const startPoint = this.markers[0].getLngLat();
         const endPoint = this.markers[1].getLngLat();
 
         const lineCoordinates = [startPoint, endPoint];
         this.drawPolyline(lineCoordinates);
 
-        const R = 6371; 
+        const R = 6371;
         const lat1 = startPoint.lat * (Math.PI / 180);
         const lat2 = endPoint.lat * (Math.PI / 180);
         const lon1 = startPoint.lng * (Math.PI / 180);
@@ -374,12 +492,16 @@ export default {
         const dLat = lat2 - lat1;
         const dLon = lon2 - lon1;
 
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1) *
+            Math.cos(lat2) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         const distance = R * c;
-        this.distance = distance
+        this.distance = distance;
         this.showInfoBox = true;
 
         console.log(`Distance between points: ${distance} kilometers`);
@@ -398,7 +520,7 @@ export default {
         properties: {},
         geometry: {
           type: "LineString",
-          coordinates: coordinates.map(coord => [coord.lng, coord.lat]),
+          coordinates: coordinates.map((coord) => [coord.lng, coord.lat]),
         },
       };
 
@@ -429,21 +551,21 @@ export default {
     removePolyline() {
       if (this.lineLayerId) {
         this.map.removeLayer(this.lineLayerId);
-        this.map.removeSource('line');
+        this.map.removeSource("line");
         this.lineLayerId = null;
       }
     },
 
     drawPolygonFeature() {
-      const coordinates = this.markers.map(marker => marker.getLngLat());
+      const coordinates = this.markers.map((marker) => marker.getLngLat());
       coordinates.push(coordinates[0]);
 
       const polygonFeature = {
         type: "Feature",
         geometry: {
           type: "Polygon",
-          coordinates: [coordinates.map(coord => [coord.lng, coord.lat])]
-        }
+          coordinates: [coordinates.map((coord) => [coord.lng, coord.lat])],
+        },
       };
 
       if (this.polygonLayerId) {
@@ -455,7 +577,7 @@ export default {
 
       this.map.addSource("polygon", {
         type: "geojson",
-        data: polygonFeature
+        data: polygonFeature,
       });
 
       this.map.addLayer({
@@ -465,8 +587,8 @@ export default {
         layout: {},
         paint: {
           "fill-color": "#088",
-          "fill-opacity": 0.4
-        }
+          "fill-opacity": 0.4,
+        },
       });
 
       this.area = this.calculatePolygonArea(coordinates);
@@ -474,25 +596,29 @@ export default {
     },
 
     calculatePolygonArea(coordinates) {
-      const polygon = turf.polygon([coordinates.map(coord => [coord.lng, coord.lat])]);
+      const polygon = turf.polygon([
+        coordinates.map((coord) => [coord.lng, coord.lat]),
+      ]);
       const area = turf.area(polygon);
       return area;
     },
 
     calculatePolygonPerimeter(coordinates) {
-      const lineString = turf.lineString(coordinates.map(coord => [coord.lng, coord.lat]));
+      const lineString = turf.lineString(
+        coordinates.map((coord) => [coord.lng, coord.lat])
+      );
       const length = turf.length(lineString, { units: "kilometers" });
       return length;
     },
 
     deleteMarker(index) {
-      const marker = this.markers.find(marker => marker.index === index);
+      const marker = this.markers.find((marker) => marker.index === index);
       if (this.markers.length < 2) {
         this.removePolygon();
       }
       if (marker) {
         marker.remove();
-        this.markers = this.markers.filter(marker => marker.index !== index);
+        this.markers = this.markers.filter((marker) => marker.index !== index);
       }
     },
 
@@ -500,54 +626,66 @@ export default {
       this.markers.forEach((marker) => marker.remove());
       this.markers = [];
       this.removePolygon();
-      this.removePolyline()
-
+      this.removePolyline();
     },
 
     removePolygon() {
       if (this.polygonLayerId) {
         this.map.removeLayer(this.polygonLayerId);
-        this.map.removeSource('polygon');
+        this.map.removeSource("polygon");
         this.polygonLayerId = null;
       }
     },
     saveGeometry() {
-      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-      
-      const geometryName = window.prompt('Enter a unique name for the geometry:');
-      
+      const savedGeometries =
+        JSON.parse(localStorage.getItem("savedGeometries")) || [];
+
+      const geometryName = window.prompt(
+        "Enter a unique name for the geometry:"
+      );
+
       if (geometryName !== null) {
-        const isNameUnique = !savedGeometries.some(geometry => geometry.name === geometryName);
-        
+        const isNameUnique = !savedGeometries.some(
+          (geometry) => geometry.name === geometryName
+        );
+
         if (isNameUnique) {
           const savedGeometry = {
             name: geometryName,
-            markers: this.markers.map(marker => marker.getLngLat()),
-            lineCoordinates: this.lineLayerId ? this.markers.map(marker => marker.getLngLat()) : null,
-            polygonCoordinates: this.polygonLayerId ? this.markers.map(marker => marker.getLngLat()) : null,
+            markers: this.markers.map((marker) => marker.getLngLat()),
+            lineCoordinates: this.lineLayerId
+              ? this.markers.map((marker) => marker.getLngLat())
+              : null,
+            polygonCoordinates: this.polygonLayerId
+              ? this.markers.map((marker) => marker.getLngLat())
+              : null,
           };
           savedGeometries.push(savedGeometry);
-          localStorage.setItem('savedGeometries', JSON.stringify(savedGeometries));
+          localStorage.setItem(
+            "savedGeometries",
+            JSON.stringify(savedGeometries)
+          );
           this.savedGeometries = savedGeometries;
           this.savedGeometries = savedGeometries;
-
         } else {
-          alert('Geometry name must be unique. Please choose a different name.');
+          alert(
+            "Geometry name must be unique. Please choose a different name."
+          );
         }
       }
     },
     showSavedGeometries() {
+      const savedGeometries =
+        JSON.parse(localStorage.getItem("savedGeometries")) || [];
 
-      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-      
       if (savedGeometries.length === 0) {
-        alert('No saved geometries found.');
+        alert("No saved geometries found.");
         return;
       }
-      
-      const geometryNames = savedGeometries.map(geometry => geometry.name);
+
+      const geometryNames = savedGeometries.map((geometry) => geometry.name);
       // const selectedGeometryName = window.prompt('Select a geometry to display:\n\n' + geometryNames.join('\n'));
-      
+
       // if (selectedGeometryName !== null) {
       //   const selectedGeometry = savedGeometries.find(geometry => geometry.name === selectedGeometryName);
       //   if (selectedGeometry) {
@@ -558,15 +696,18 @@ export default {
       // }
     },
     displaySavedGeometry(name) {
-      const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-      const selectedGeometry = savedGeometries.find(geometry => geometry.name === name);
+      const savedGeometries =
+        JSON.parse(localStorage.getItem("savedGeometries")) || [];
+      const selectedGeometry = savedGeometries.find(
+        (geometry) => geometry.name === name
+      );
 
       if (selectedGeometry) {
         this.clearFeatures();
-        this.removePolyline()
+        this.removePolyline();
 
-        selectedGeometry.markers.forEach(coords => {
-          const popupContent = document.createElement('div');
+        selectedGeometry.markers.forEach((coords) => {
+          const popupContent = document.createElement("div");
           popupContent.innerHTML = `<p>Lat: ${coords.lat}</p><p>Lng: ${coords.lng}</p>`;
 
           const marker = new mapboxgl.Marker()
@@ -576,69 +717,93 @@ export default {
 
           this.markers.push(marker);
         });
-        console.log('-0-0-0-0-0-0-0-0-0-0-0-0-0-0',selectedGeometry.lineCoordinates)
+        // console.log(
+        //   "-0-0-0-0-0-0-0-0-0-0-0-0-0-0",
+        //   selectedGeometry.lineCoordinates
+        // );
         if (selectedGeometry.polygonCoordinates) {
           this.drawPolygonFeature(selectedGeometry.polygonCoordinates);
         } else if (selectedGeometry.lineCoordinates) {
           this.drawPolyline(selectedGeometry.lineCoordinates);
-          
         }
 
         if (selectedGeometry.polygonCoordinates) {
           this.showInfoBox = true;
-          this.area = this.calculatePolygonArea(selectedGeometry.polygonCoordinates);
-          this.perimeter = this.calculatePolygonPerimeter(selectedGeometry.polygonCoordinates);
+          this.area = this.calculatePolygonArea(
+            selectedGeometry.polygonCoordinates
+          );
+          this.perimeter = this.calculatePolygonPerimeter(
+            selectedGeometry.polygonCoordinates
+          );
         } else if (selectedGeometry.lineCoordinates) {
           this.showInfoBox = true;
           const startPoint = selectedGeometry.markers[0];
           const endPoint = selectedGeometry.markers[1];
-          console.log(startPoint, endPoint)
+          console.log(startPoint, endPoint);
           // const distance = turf.distance(startPoint, endPoint) * 1000;
           // this.distance = distance;
 
           // ///////////////////////////////////////
           ///////////////////////////////////////////
-            //   const startPoint = this.markers[0].getLngLat();
-            // const endPoint = this.markers[1].getLngLat();
+          //   const startPoint = this.markers[0].getLngLat();
+          // const endPoint = this.markers[1].getLngLat();
 
-            const lineCoordinates = [startPoint, endPoint];
-            this.drawPolyline(lineCoordinates);
+          const lineCoordinates = [startPoint, endPoint];
+          this.drawPolyline(lineCoordinates);
 
-            const R = 6371; 
-            const lat1 = startPoint.lat * (Math.PI / 180);
-            const lat2 = endPoint.lat * (Math.PI / 180);
-            const lon1 = startPoint.lng * (Math.PI / 180);
-            const lon2 = endPoint.lng * (Math.PI / 180);
+          const R = 6371;
+          const lat1 = startPoint.lat * (Math.PI / 180);
+          const lat2 = endPoint.lat * (Math.PI / 180);
+          const lon1 = startPoint.lng * (Math.PI / 180);
+          const lon2 = endPoint.lng * (Math.PI / 180);
 
-            const dLat = lat2 - lat1;
-            const dLon = lon2 - lon1;
+          const dLat = lat2 - lat1;
+          const dLon = lon2 - lon1;
 
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1) *
+              Math.cos(lat2) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            const distance = R * c;
-            this.distance = distance
-              ///////////////////////////////////////////
-          console.log(distance)
+          const distance = R * c;
+          this.distance = distance;
+          ///////////////////////////////////////////
+          console.log(distance);
         }
       }
     },
 
-    
     deleteSavedGeometry(name) {
-      const confirmed = window.confirm(`Are you sure you want to delete "${name}"?`);
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${name}"?`
+      );
       if (confirmed) {
-        const savedGeometries = JSON.parse(localStorage.getItem('savedGeometries')) || [];
-        const updatedGeometries = savedGeometries.filter(geometry => geometry.name !== name);
-        localStorage.setItem('savedGeometries', JSON.stringify(updatedGeometries));
+        const savedGeometries =
+          JSON.parse(localStorage.getItem("savedGeometries")) || [];
+        const updatedGeometries = savedGeometries.filter(
+          (geometry) => geometry.name !== name
+        );
+        localStorage.setItem(
+          "savedGeometries",
+          JSON.stringify(updatedGeometries)
+        );
+        
         this.savedGeometries = updatedGeometries;
         this.savedGeometries = savedGeometries;
+        this.selectedGeometryForDeletion = name;   
+        if (updatedGeometries.length === 0) {
+          this.$refs.savedGeomList.style.display = "none";
+        }
+
         this.selectedGeometryForDeletion = name;
         this.$nextTick(() => {
-          this.savedGeometryNames = updatedGeometries.map(geometry => geometry.name);
+          this.savedGeometryNames = updatedGeometries.map(
+            (geometry) => geometry.name
+          );
         });
-        
       }
     },
   },
@@ -646,12 +811,12 @@ export default {
 </script>
 
 <style>
-  .map-container {
-    font-family: 'Chivo Mono', sans-serif;
-    flex: 1;
-  }
+.map-container {
+  font-family: "Chivo Mono", sans-serif;
+  flex: 1;
+}
 
-  /* #toggle_button {
+/* #toggle_button {
     background-image: url('https://cdn.supsystic.com/wp-content/uploads/2018/08/Different-Map-Styles-3-1024x444.png');
     background-image: url('@/assets/toggleMapStyle2.png');
     background-size: cover;
@@ -686,237 +851,231 @@ export default {
     font-weight: 500;transition: 0.2s ease;
 
   } */
-  #toggle_button{
-    position: absolute;
-    bottom: 0px;
-    right: 0;
-    margin-right:auto;
-    /* margin: none; */
-    /* padding: none; */
-    width: 60px;
-    height: 60px;
-    box-shadow: none;
-    background-size: contain;
-    background-image: url('@/assets/toggleMapStyle.png');
-    z-index: 1;
-    position: absolute;
-    bottom: 0px;
-    right: 0;
-    margin: 30px;
-    cursor: pointer;
-    transition: 0.2s ease;
-    border-radius: 50%;
-    text-shadow: 0 0 5px white;
-    box-shadow: -5px 2px 5px black;
-    color: black;
-    font-weight: 500;
-    font-size: large;
-    border: 3px solid black;
-  }
-  #toggle_button:hover{
-    background-size: contain;
-    background-image: url('@/assets/toggleMapStyle2.png'); 
-    border-radius: 50%;
-    box-shadow: 5px -2px 5px black;
-  }
+#toggle_button {
+  position: absolute;
+  bottom: 0px;
+  right: 0;
+  margin-right: auto;
+  /* margin: none; */
+  /* padding: none; */
+  width: 60px;
+  height: 60px;
+  box-shadow: none;
+  background-size: contain;
+  background-image: url("@/assets/toggleMapStyle.png");
+  z-index: 1;
+  position: absolute;
+  bottom: 0px;
+  right: 0;
+  margin: 30px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  border-radius: 50%;
+  text-shadow: 0 0 5px white;
+  box-shadow: -5px 2px 5px black;
+  color: black;
+  font-weight: 500;
+  font-size: large;
+  border: 3px solid black;
+}
+#toggle_button:hover {
+  background-size: contain;
+  background-image: url("@/assets/toggleMapStyle2.png");
+  border-radius: 50%;
+  box-shadow: 5px -2px 5px black;
+}
 
-  #searchdiv {
-    height: fit-content;
-    font-family: 'Chivo Mono', sans-serif;
-    width: fit-content;
-    /* margin-right: 50px; */
-    background-color: white;
-    border: 1px solid rgba(100,100,100,1);
-    box-shadow:0 0 5px rgba(100,100,100,1);
-  }
+#searchdiv {
+  height: fit-content;
+  font-family: "Chivo Mono", sans-serif;
+  width: fit-content;
+  /* margin-right: 50px; */
+  background-color: white;
+  border: 1px solid rgba(100, 100, 100, 1);
+  box-shadow: 0 0 5px rgba(100, 100, 100, 1);
+}
 
-  .mapboxgl-ctrl-geocoder {
-    padding-top: 15px;
-    padding-bottom: 15px;
-    padding-left: 15px ;
-    z-index: 1;
-    margin-right: 50px;
-    /* position: absolute;
+.mapboxgl-ctrl-geocoder {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  padding-left: 15px;
+  z-index: 1;
+  margin-right: 50px;
+  /* position: absolute;
     top: 0px;
     left: 800px; */
-    border-radius: 5px;
-    background-color:rgba(0255,0255,255,0.9);
-    /* background-color: red; */
-    width: 260px;
-    border: 1px solid rgba(100,100,100,1);
-    box-shadow: 0 0 5px rgba(100,100,100,1);
+  border-radius: 5px;
+  background-color: rgba(0255, 0255, 255, 0.9);
+  /* background-color: red; */
+  width: 260px;
+  border: 1px solid rgba(100, 100, 100, 1);
+  box-shadow: 0 0 5px rgba(100, 100, 100, 1);
+}
+.mapboxgl-ctrl-geocoder--input {
+  padding: 15px;
+  padding-right: 0;
+}
+.mapboxgl-ctrl-geocoder {
+  position: absolute;
+  border-radius: 10px;
+  right: 10px;
+  /* background-color: red; */
+}
+.mapboxgl-ctrl-geocoder--button {
+  position: absolute;
+  top: -35px;
+  right: -10px;
+  width: 35px;
+  height: 35px;
+  /* background-color: green; */
 
-  }
-  .mapboxgl-ctrl-geocoder--input{
-    padding:15px;
-    padding-right: 0;
-  }
-  .mapboxgl-ctrl-geocoder{
-    position: absolute;
-    border-radius: 10px;
-    right: 10px;
-    /* background-color: red; */
-  }
-  .mapboxgl-ctrl-geocoder--button{
-    position: absolute;
-    top:-35px;
-    right: -10px;
-    width: 35px;
-    height: 35px;
-    /* background-color: green; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.mapboxgl-ctrl-geocoder--button:hover {
+  background: white;
+  background-size: cover;
+  border: 2px solid red;
+}
+input {
+  font-family: "Chivo Mono", sans-serif;
+  border-radius: 5px;
+}
+.mapboxgl-ctrl-geocoder--suggestion {
+  cursor: pointer;
+  color: rgb(30, 29, 29);
+  padding: 2px;
+  border: solid 1px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+.mapboxgl-ctrl-geocoder input {
+  width: max-content;
+}
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-icon {
+  /* position: absolute; */
+  /* background-color: red; */
+  top: 50%;
+  /* right: 100px;  */
+  border-radius: 10px;
+  transform: translateY(-50%);
+}
+a {
+  color: white;
+}
+.suggestions,
+.mapboxgl-ctrl-geocoder--suggestion li {
+  color: black;
+  margin-left: -20px;
+  margin-right: 5px;
+  margin-top: 5px;
+  /* box-shadow: 0 1px 5px rgba(0,0,0,0.5); */
+  /* width: 20px; */
+}
+li {
+  /* border:5px solid red */
+  margin-left: 5px;
+}
+.mapboxgl-ctrl-geocoder--suggestion-title {
+  font-weight: 900;
+}
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    cursor: pointer;
-  }
-  .mapboxgl-ctrl-geocoder--button:hover{
-    background: white;
-    background-size: cover;
-    border: 2px solid red;
-  }
-  input{
-    font-family: 'Chivo Mono', sans-serif;
-    border-radius: 5px;
-  }
-  .mapboxgl-ctrl-geocoder--suggestion{
-    
-    cursor: pointer;
-    color:rgb(30, 29, 29);
-    padding: 2px;
-    border: solid 1px rgba(0,0,0,0.1);
-    border-radius: 5px;
-  }
-  .mapboxgl-ctrl-geocoder input{
-    width: max-content;
+.mapboxgl-ctrl-geocoder--icon-search {
+  margin-right: 10px;
+  margin-top: -10px;
+  padding-top: 15px;
+  /* padding-bottom: -5px; */
+  height: 30px;
+  width: auto;
+  /* width: 50px; */
+  /* background-color: white; */
+  /* position: absolute; */
+  /* top: 5px; */
+  /* margin : 5px; */
 
-  }
-  .mapboxgl-ctrl-geocoder .mapboxgl-ctrl-icon {
-    /* position: absolute; */
-    /* background-color: red; */
-    top: 50%;
-    /* right: 100px;  */
-    border-radius: 10px;
-    transform: translateY(-50%);
-  }
-  a{
-    color: white;
-  }
-  .suggestions, .mapboxgl-ctrl-geocoder--suggestion li{
-    color:black;
-    margin-left: -20px;
-    margin-right: 5px;
-    margin-top:5px;
-    /* box-shadow: 0 1px 5px rgba(0,0,0,0.5); */
-    /* width: 20px; */
-  }
-  li{
-    /* border:5px solid red */
-    margin-left:5px;
-  }
-  .mapboxgl-ctrl-geocoder--suggestion-title{
-    font-weight: 900;
-  }
-  
-  .mapboxgl-ctrl-geocoder--icon-search {
-    margin-right: 10px;
-    margin-top: -10px;
-    padding-top: 15px;
-    /* padding-bottom: -5px; */
-    height: 30px;
-    width: auto;
-    /* width: 50px; */
-    /* background-color: white; */
-    /* position: absolute; */
-    /* top: 5px; */
-    /* margin : 5px; */
-
-    /* z-index: 1; */
-  }
-  .mapboxgl-ctrl-geocoder--icon-loading{
+  /* z-index: 1; */
+}
+.mapboxgl-ctrl-geocoder--icon-loading {
   display: none;
 }
-  #drop_marker_button {
-    z-index: 1;
-    font-family: 'Chivo Mono', sans-serif;
-    background-color: rgba(0205,0205,0205,01.8);
-    /* background-color: red; */
-    position: absolute;
-    top: 80px;
-    left: 0px;
-    height: 35px;
-    margin-left: 30px;
-    cursor: pointer;
-    /* border: 1px solid rgba(100,100,100,1); */
-    transition: 0.2s ease ;
-    width: 40px;
-    height: 40px;
+#drop_marker_button {
+  z-index: 1;
+  font-family: "Chivo Mono", sans-serif;
+  background-color: rgba(0205, 0205, 0205, 01.8);
+  /* background-color: red; */
+  position: absolute;
+  top: 80px;
+  left: 0px;
+  height: 35px;
+  margin-left: 30px;
+  cursor: pointer;
+  /* border: 1px solid rgba(100,100,100,1); */
+  transition: 0.2s ease;
+  width: 40px;
+  height: 40px;
 
-    background-color: white;
-    background-size: cover;
-    box-shadow: 0px 0px 10px white;
-    /* border: none; */
-    /* border: 2px white solid; */
-    border-radius: 5px;
-    cursor: pointer;
-  }
-
-  .pinBtns{
-    width: 40px;
-    height: 40px;
-    background-image: url('@/assets/pin.png'); 
-    background-color: white;
-    background-size: cover;
-    border: 2px solid rgba(0,0,0,0.5);
-    
-  }
-  .pinBtns:hover{
-    
-    border: 1px solid rgba(0,0,0,0.5);
-  box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  padding: 2px;
-    width: 40px;
-    height: 40px;
-    border: 2px solid rgb(100,100,100);
-    background-image: url('@/assets/pin.gif'); 
-    /* font-family: 'Chivo Mono', sans-serif; */
-    animation: playGif 1s infinite;
-    transition: 0.2s ease;
+  background-color: white;
+  background-size: cover;
+  box-shadow: 0px 0px 10px white;
+  /* border: none; */
+  /* border: 2px white solid; */
+  border-radius: 5px;
+  cursor: pointer;
 }
 
+.pinBtns {
+  width: 40px;
+  height: 40px;
+  background-image: url("@/assets/pin.png");
+  background-color: white;
+  background-size: cover;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+}
+.pinBtns:hover {
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 2px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgb(100, 100, 100);
+  background-image: url("@/assets/pin.gif");
+  /* font-family: 'Chivo Mono', sans-serif; */
+  animation: playGif 1s infinite;
+  transition: 0.2s ease;
+}
 
-  .drawingTools{
-    width: 40px;
-    height: 40px;
-    background-size: cover;
-    z-index: 1;
-    font-family: 'Chivo Mono', sans-serif;
-    cursor: pointer;
-    transition: 0.2s ease ;
-    position: absolute;
-    top: 80px;
-    left: 50px;
-    margin-left: 30px;
-    /* border: 5px solid white; */
-    transition: 0.2s ease ;
-    z-index: 1;
-    background-color: white;
-    background-size: cover;
-    box-shadow: 0px 0px 10px white;
-    cursor: pointer;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 1px solid rgba(100,100,100,1);
-    transition: 0.2s ease ;
-    z-index: 1;
-  }
+.drawingTools {
+  width: 40px;
+  height: 40px;
+  background-size: cover;
+  z-index: 1;
+  font-family: "Chivo Mono", sans-serif;
+  cursor: pointer;
+  transition: 0.2s ease;
+  position: absolute;
+  top: 80px;
+  left: 50px;
+  margin-left: 30px;
+  /* border: 5px solid white; */
+  transition: 0.2s ease;
+  z-index: 1;
+  background-color: white;
+  background-size: cover;
+  box-shadow: 0px 0px 10px white;
+  cursor: pointer;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid rgba(100, 100, 100, 1);
+  transition: 0.2s ease;
+  z-index: 1;
+}
 
-  
-  .info-box {
-  background-color: rgba(255, 255, 255, 0.90);
+.info-box {
+  background-color: rgba(255, 255, 255, 0.9);
   color: rgba(0, 0, 0, 0.9);
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   /* font-weight: 900; */
   width: 280px;
   align-items: center; /* Center align vertically */
@@ -926,12 +1085,12 @@ export default {
   position: absolute;
   bottom: 70px;
   left: 20px;
-  border: 1px solid rgba(100,100,100,1);
+  border: 1px solid rgba(100, 100, 100, 1);
   padding: 10px;
   margin-top: 10px;
   box-shadow: 0 0 10px white;
   border-radius: 10px;
-  }
+}
 
 .custom-marker {
   border-radius: 50%;
@@ -941,54 +1100,54 @@ export default {
   cursor: pointer;
 }
 
-.saveGeom{
+.saveGeom {
   z-index: 1;
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   position: absolute;
   top: 50px;
-  left : 100px;
+  left: 100px;
   /* top: 40px; */
 }
- .showSavedGeom{
+.showSavedGeom {
   z-index: 1;
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   position: absolute;
   top: 200px;
 }
 
 .savedGeomList {
   z-index: 1;
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   position: absolute;
   top: 140px;
   left: 20px;
-  max-height: 500px;
+  max-height: 50%;
   overflow-y: auto;
   padding: 10px;
   /* margin: 50px; */
-  height: 50%;
+  height: 500px;
+  min-height: fit-content;
   /* max-height: 80%; */
   border-radius: 10px;
   width: 300px;
-  border: 1px solid rgba(100,100,100,1);
+  border: 1px solid rgba(100, 100, 100, 1);
   /* width:fit-content; */
   padding-bottom: 50px;
   background-color: white;
-  box-shadow: 0 0 10px rgba(100,100,100,1);
+  box-shadow: 0 0 10px rgba(100, 100, 100, 1);
 }
 
 .hidden {
   display: none;
 }
 
-
-.GeomList{
+.GeomList {
   justify-content: space-between;
   border: none;
   padding: 10px;
   height: fit-content;
-  font-family: 'Chivo Mono', sans-serif;
-  background-color: rgba(255,255,255,10);
+  font-family: "Chivo Mono", sans-serif;
+  background-color: rgba(255, 255, 255, 10);
   max-height: 20rem;
   width: fit-content;
   margin: auto;
@@ -996,129 +1155,126 @@ export default {
   /* margin-left: 20px; */
 }
 
-.GeomEntry{
+.GeomEntry {
   display: flex;
   margin: auto;
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   margin-bottom: 15px;
   /* height: 32px; */
   min-height: 0;
   /* padding-bottom: 5px; */
   justify-content: space-between;
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0, 0, 0, 0);
   border-bottom: 1px rgba(0, 0, 0, 0.2) solid;
   border-right: 1px rgba(0, 0, 0, 0.2) solid;
-  box-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
 }
-.GeomEntry:hover{
+.GeomEntry:hover {
   /* box-shadow: 0 0 3px rgba(0,0,0,0.8); */
   min-height: 10%;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
-#deleteGeomName{
+#deleteGeomName {
   border: none;
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0, 0, 0, 0);
   width: 30px;
   height: 20px;
   cursor: pointer;
   margin: auto;
-  color: rgba(0,0,0,5.8)
+  color: rgba(0, 0, 0, 5.8);
 }
 
-#deleteGeomName:hover{
+#deleteGeomName:hover {
   font-size: larger;
-  text-shadow: 0 0 1px rgba(0,0,0,0.5);
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
 
   transition: 0.1s ease-in-out;
   /* background-color: red; */
 }
 
-#GeomName{
+#GeomName {
   text-align: left;
   border: none;
   /* border-bottom: 1px solid gray; */
   width: 180px;
-  font-family: 'Chivo Mono', sans-serif;
+  font-family: "Chivo Mono", sans-serif;
   max-width: 100%;
   /* background-color: rgba(255,255,255,10); */
-  color: blue ;
+  color: blue;
   cursor: pointer;
   /* white-space: nowrap; */
   overflow: hidden;
   text-overflow: ellipsis;
-  
 }
 
-#GeomName:hover{
+#GeomName:hover {
   font-size: larger;
-  text-shadow: 0 0 1px rgba(0,0,0,0.2);
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
   transition: 0.1s ease-in-out;
 }
 
 .GeomName::after {
-  content: '\00a0-\00a0'; /* Adds a non-breaking space and a dash before the word */
+  content: "\00a0-\00a0"; /* Adds a non-breaking space and a dash before the word */
 }
 
+#start_drawing_button {
+  width: 40px;
+  height: 40px;
+  background-size: cover;
+  z-index: 1;
+  font-family: "Chivo Mono", sans-serif;
+  background-color: rgba(0205, 0205, 0205, 01.8);
 
-#start_drawing_button{
-    width: 40px;
-    height: 40px;
-    background-size: cover;
-    z-index: 1;
-    font-family: 'Chivo Mono', sans-serif;
-    background-color: rgba(0205,0205,0205,01.8);
+  cursor: pointer;
+  transition: 0.2s ease;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid black;
+  transition: 0.2s ease;
+  z-index: 1;
+  background-color: white;
+  background-size: cover;
+  box-shadow: 0px 0px 5px white;
+  cursor: pointer;
+  /* border:none; */
 
-    cursor: pointer;
-    transition: 0.2s ease ;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 1px solid black;
-    transition: 0.2s ease ;
-    z-index: 1;
-    background-color: white;
-    background-size: cover;
-    box-shadow: 0px 0px 5px white;
-    cursor: pointer;
-    /* border:none; */
+  background-image: url("@/assets/blueprint.png");
+}
+#start_drawing_button:hover {
+  background-color: rgba(255, 255, 255, 1);
+  border: 2px solid rgb(100, 100, 100);
+  background-image: url("@/assets/blueprint.gif");
+  font-family: "Chivo Mono", sans-serif;
+  transition: 0.2s ease;
+}
 
-    background-image: url('@/assets/blueprint.png'); 
-  }
-  #start_drawing_button:hover{
-    background-color: rgba(255, 255 , 255, 1);
-    border: 2px solid rgb(100,100,100);
-    background-image: url('@/assets/blueprint.gif'); 
-    font-family: 'Chivo Mono', sans-serif;
-    transition: 0.2s ease ;
-  }
-
-  .search-div #search-div{
-    border: 1px solid rgba(100,100,170,1);
-    background-color: red;
-  }
-  .saveGeom{
+.search-div #search-div {
+  border: 1px solid rgba(100, 100, 170, 1);
+  background-color: red;
+}
+.saveGeom {
   background-color: white;
   background-size: contain;
-    background-image: url('@/assets/save-file (1).png'); 
-    height:40px;
-    width: 40px;
-    margin-left: 30px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(255,255,255,2);
-    background-color: rgba(0205,0205,0205,01.8);
-    margin: 30px;
-    cursor: pointer;
-    transition: 0.2s ease ;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 1px solid black;
-    transition: 0.2s ease ;
-    z-index: 1;
-    background-color: white;
-    background-size: cover;
-    box-shadow: 0px 0px 5px white;
-
-  }
+  background-image: url("@/assets/save-file (1).png");
+  height: 40px;
+  width: 40px;
+  margin-left: 30px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 2);
+  background-color: rgba(0205, 0205, 0205, 01.8);
+  margin: 30px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid black;
+  transition: 0.2s ease;
+  z-index: 1;
+  background-color: white;
+  background-size: cover;
+  box-shadow: 0px 0px 5px white;
+}
 
 @keyframes playGif {
   0% {
@@ -1139,58 +1295,57 @@ export default {
   margin-top: 20px;
 }
 
-
-
 @media screen and (max-width: 800px) {
-.mapboxgl-ctrl-geocoder {
+  .mapboxgl-ctrl-geocoder {
     position: absolute;
     top: 00px;
     /* padding-top: 15px; */
     padding-bottom: 15px;
-    padding-left: 15px ;
+    padding-left: 15px;
     z-index: 1;
     margin-right: 50px;
     border-radius: 10px;
-    background-color:rgba(0255,0255,255,0.9);
+    background-color: rgba(0255, 0255, 255, 0.9);
     /* background-color: red; */
     width: 260px;
-    border: 1px solid rgba(100,100,100,1);
-    box-shadow: 0 0 5px rgba(100,100,100,1);
+    border: 1px solid rgba(100, 100, 100, 1);
+    box-shadow: 0 0 5px rgba(100, 100, 100, 1);
   }
 
-  .savedGeomList{
+  .savedGeomList {
     margin-top: -10px;
     max-height: 50%;
   }
-  .GeomList{
+  .GeomList {
     width: 100%;
   }
-  #toggle_button{
+  #toggle_button {
     position: absolute;
     bottom: 0rem;
-    left:1rem;
-    margin-right:auto;
+    left: 1rem;
+    margin-right: auto;
     /* margin: none; */
     /* padding: none; */
     width: 60px;
     height: 60px;
     box-shadow: none;
     background-size: contain;
-    background-image: url('@/assets/toggleMapStyle.png');
+    background-image: url("@/assets/toggleMapStyle.png");
   }
-  #toggle_button:hover{
+  #toggle_button:hover {
     background-size: contain;
-    background-image: url('@/assets/toggleMapStyle2.png'); 
+    background-image: url("@/assets/toggleMapStyle2.png");
     box-shadow: none;
   }
-  .info-box{
+  .info-box {
     position: absolute;
     bottom: 5rem;
     right: 10px;
     width: 260px;
     margin-left: auto;
   }
-  .mapboxgl-marker .mapboxgl-marker-anchor-center{
-    cursor:crosshair;}
+  .mapboxgl-marker .mapboxgl-marker-anchor-center {
+    cursor: crosshair;
+  }
 }
 </style>
