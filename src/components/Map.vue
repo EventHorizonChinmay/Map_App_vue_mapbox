@@ -125,7 +125,6 @@
 
     <div
       class="savedGeomList"
-      ref="savedGeomList"
       v-show="savedGeometries.length > 0"
       >
       <!-- v-if="savedGeometries.length > 0" -->
@@ -798,7 +797,6 @@ export default {
           this.$refs.savedGeomList.style.display = "none";
         }
 
-        this.selectedGeometryForDeletion = name;
         this.$nextTick(() => {
           this.savedGeometryNames = updatedGeometries.map(
             (geometry) => geometry.name
@@ -1121,12 +1119,11 @@ li {
   position: absolute;
   top: 140px;
   left: 20px;
-  max-height: 50%;
+  max-height: 500px;
   overflow-y: auto;
   padding: 10px;
   /* margin: 50px; */
-  height: 500px;
-  min-height: fit-content;
+  height: 50%;
   /* max-height: 80%; */
   border-radius: 10px;
   width: 300px;
