@@ -64,8 +64,8 @@
       <!-- </div> -->
       <div ref="searchdiv" id="search-div"></div>
       
-<div v-if="showInfoBox && (markers.length === 2 || polygonLayerId)" class="info-box">
-  <p v-if="markers.length === 2" style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +' kms' }} </span></p>
+<div v-if="showInfoBox&& !markerMode &&  (markers.length === 2 || polygonLayerId)" class="info-box">
+  <p v-if="markers.length === 2 " style="font-weight: 600;">Distance: <span style="font-weight: 800; font-size:small;"> {{ distance<1 ? (distance*1000).toFixed(3)+ ' meters' : distance.toFixed(3) +' kms' }} </span></p>
   <p v-if="polygonLayerId" style="font-weight: 600;">Area &nbsp  &nbsp &nbsp:<span style="font-weight: 800; font-size:small;"> &nbsp {{ area < 1e6 ? area.toFixed(3) + ' meters' : (area/1e6).toFixed(3) + ' kms' }}<sup style="font-weight:800">2</sup> </span> </p>
   <p v-if="polygonLayerId" style="font-weight: 600;">Perimeter : &nbsp <span style="font-weight: 800;  font-size:small;">{{ perimeter<1 ? perimeter.toFixed(3)*1000 + ' meters' : perimeter.toFixed(3) +' kms' }} </span></p>
 </div>
@@ -73,7 +73,7 @@
         <!-- Save Geometry -->
       </button>
     
-      <div class="savedGeomList" v-if="savedGeometries.length > 0">
+      <div class="savedGeomList" v-show="savedGeometries.length > 0" v-if="savedGeometries.length > 0" >
         <div class="GeomList">
           <h3 style="margin-bottom: 12px; text-align: center; font-weight: 700; font-size: medium;">Saved Geometries</h3>
           <div  v-for="(geometry, index) in savedGeometries" :key="index" 
